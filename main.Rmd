@@ -12,11 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 令$D$表示分析数据，$D_0$表示外部数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$Y$表示结局，$A$表示治疗分组，$i$表示个体的下标。
 
-## 2. Likelihood Principle和共轭先验
-
-
-
-## 3. 混合先验
+## 2. 混合先验
 
 混合先验将外部数据的似然函数和给定先验按一定的权重混合:
 $$p(\theta|w) \propto wL(\theta|D_0)+(1-w)\pi(\theta).$$
