@@ -1,6 +1,7 @@
 ---
 title: ""
-output: html_document
+output: bookdown::html_document2
+bibliography: reference.bib
 date: "2025-10-22"
 ---
 
@@ -8,13 +9,61 @@ date: "2025-10-22"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 1. Notation
+# Introduction {#sec1}
 
-令$D$表示分析数据，$D_0$表示外部数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$Y$表示结局，$A$表示治疗分组，$i$表示个体的下标。
+本文档旨在完善Bayesian统计在临床试验中应用时涉及的算法。本文档所考虑的先验仅包括混合先验和幂先验。在章节\@ref(sec2)中，本文档将简介混合先验及幂先验的统计学理论。在章节\@ref(sec3)中，本文档将基于SAP模板中的主要分析方法 (MMRM、ANCOVA、negative binomial regression、stratified CMH以及stratified Cox-PH regression)，给出相应的基于混合先验以及幂先验的Bayesian算法框架。在章节\@ref(sec4)中，本文档将基于不同场景下的模拟案例，就参数估计和假设检验，比较不同类型的先验下，频率学方法以及Bayesian方法的统计性能。
 
-## 2. 混合先验
+# Method and Notation {#sec2}
 
-混合先验将外部数据的似然函数和给定先验按一定的权重混合:
-$$p(\theta|w) \propto wL(\theta|D_0)+(1-w)\pi(\theta).$$
-将$w$也看作随机变量，此时将由分析数据自适应决定权重分配：
-$$p(\theta,w)\propto\left(wL(\theta|D_0)+(1-w)\pi_1(\theta)\right)\pi_2(w)$$
+令$D$表示分析数据，$D_{hst}$表示外部数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$i=1,\dots,n$表示个体的下标。
+
+本文档用$p_{hst}(\theta)=L(\theta|D_{hst})\pi_{hst}(\theta)$表示历史先验，其中$\pi_{hst}(\theta)$通常取Jeffreys prior等无信息先验 [@Yang2023]。
+
+## 混合先验  
+
+混合先验将外部数据的似然函数和给定先验按一定的权重混合,
+$$p_{mp}(\theta|w) \propto wp_{hst}(\theta)+(1-w)\pi_0(\theta).$$
+若无法确定$w$的值，可将$w$也看作随机变量，此时将由分析数据自适应决定权重分配,
+$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta)+(1-w)\pi_0(\theta)\right)\pi_1(w).$$
+
+## 幂先验
+
+幂先验的表达式如下：
+$$p_{pp}(\theta|w) \propto p_{hst}(\theta)^w\pi_0(\theta).$$
+从表达式不难得出，当$w=0$时，幂先验不借用外部数据$D_{hst}$；当 $w=1$时，幂先验完全借用外部数据$D_{hst}$。
+
+同样地，若无法确定$w$的值，幂先验也可将$w$也看作随机变量，此时有
+$$p_{pp}(\theta,w)\propto p_{hst}(\theta)^w\pi_0(\theta)\pi_1(w).$$
+然而，与混合先验不同的是，若不对$p_{hst}(\theta)^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Berry2010; @Robert2007]，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行标准化，
+$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta)^w\pi_0(\theta)}{\int p_{hst}(\theta)^w\pi_0(\theta)d\theta}\pi_1(w).$$
+
+# Application and Case Study {#sec3}
+
+## 非肿瘤项目
+
+### 连续变量终点
+
+#### MMRM模型
+
+#### ANCOVA模型
+
+ANCOVA的模型假设如下：
+$$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).$$
+也即，
+$$Y\sim N(X\beta, \sigma^2I),$$
+其中$X=[1, A, Z]$，$\beta = [\alpha, \tau, \gamma^T]^T$。那么对于历史数据，取Jeffreys prior $\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2$，有
+$$p_{hst}(\theta)\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},$$
+因此，混合先验为
+$$p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),$$
+幂先验为 [@Ibrahim2003]
+$$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).$$
+注意到当$w\leq p/n$时，若$\pi_0(\beta,\sigma^2)$也为improper prior，此时幂先验可能为improper prior。
+
+对于$\pi_0(\beta,\sigma^2)$的选取，既可以选择共轭先验，例如$\pi_0(\beta,\sigma^2)=N(\hat\beta_{hst},\sigma^2I)InvGamma(\frac{1}{2}, \frac{3RSS_{hst}}{2})$，也可以选择其他模糊先验，例如$\pi_0(\beta,\sigma)=N(\hat\beta_{hst},RSS_{hst}(X_{hst}^TX_{hst})^{-1})Half-t(2, \sqrt{\frac{RSS_{hst}}{2(n-p)}})$。
+
+
+## 肿瘤项目
+
+# Simulation Study {#sec4}
+
+# Reference {#sec5}
