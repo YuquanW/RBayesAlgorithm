@@ -66,4 +66,17 @@ $$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^
 
 # Simulation Study {#sec4}
 
+## 非肿瘤项目
+
+### 连续变量终点
+
+#### MMRM模型
+
+#### ANCOVA模型
+
+```{r}
+library(rstan)
+```
+
+
 # Reference {#sec5}

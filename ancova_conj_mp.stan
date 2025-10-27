@@ -7,11 +7,15 @@ data {
 
   // NIG prior (from historical data)
   vector[p] beta_hst;
-  matrix[p, p] Sigma_hst;   // lower Cholesky of V_inf
+  matrix[p, p] L_Sigma_hst;   // lower Cholesky of Sigma_hst
+  real<lower=0> a_hst;
+  real<lower=0> b_hst;
 
   // Vague NIG
   vector[p] beta_vag;
-  matrix[p, p] Sigma_vag;   // lower Cholesky of V_vag
+  matrix[p, p] L_Sigma_vag;   // lower Cholesky of Sigma_vag
+  real<lower=0> a_vag;
+  real<lower=0> b_vag;
 
   // Mixture weight control
   real<lower=0, upper=1> w_fixed;  // used if estimate_w==0
@@ -32,19 +36,13 @@ model {
 
   // Mixture NIG prior on (beta, sigma2): mixture of joint densities
   {
-    real lp_inf = multi_normal_cholesky_lpdf(beta | m_inf, sqrt(sigma2) * L_V_inf)
-                  + inv_gamma_lpdf(sigma2 | alpha_inf, beta_inf);
-    real lp_vag = multi_normal_cholesky_lpdf(beta | m_vag, sqrt(sigma2) * L_V_vag)
-                  + inv_gamma_lpdf(sigma2 | alpha_vag, beta_vag);
+    real lp_ancova_conj_hst = multi_normal_cholesky_lpdf(beta | beta_hst, sqrt(sigma2) * L_Sigma_hst)
+                  + inv_gamma_lpdf(sigma2 | a_hst, b_hst);
+    real lp_ancova_conj_vag = multi_normal_cholesky_lpdf(beta | beta_vag, sqrt(sigma2) * L_Sigma_vag)
+                  + inv_gamma_lpdf(sigma2 | a_vag, b_vag);
     target += log_mix(w_eff, lp_inf, lp_vag);
   }
 
   // Likelihood
   y ~ normal(X * beta, sigma);
-}
-generated quantities {
-  vector[N] log_lik;
-  for (n in 1:N) {
-    log_lik[n] = normal_lpdf(y[n] | dot_product(row(X, n), beta), sqrt(sigma2));
-  }
 }
