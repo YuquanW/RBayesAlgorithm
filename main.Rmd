@@ -47,6 +47,8 @@ $$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta)^w\pi_0(\theta)
 
 #### ANCOVA模型
 
+##### 固定权重
+
 ANCOVA的模型假设如下：
 $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).$$
 也即，
@@ -56,11 +58,12 @@ $$p_{hst}(\theta)\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sig
 因此，混合先验为
 $$p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),$$
 幂先验为 [@Ibrahim2003]
-$$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).$$
-注意到当$w\leq p/n$时，若$\pi_0(\beta,\sigma^2)$也为improper prior，此时幂先验可能为improper prior。
+$$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2}+w-1,\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).$$
+注意到当$w\leq (p+2)/(n+2)$时，若$\pi_0(\beta,\sigma^2)$也为improper prior，此时幂先验可能为improper prior。
 
 对于$\pi_0(\beta,\sigma^2)$的选取，既可以选择共轭先验，例如$\pi_0(\beta,\sigma^2)=N(\hat\beta_{hst},\sigma^2I)InvGamma(\frac{1}{2}, \frac{3RSS_{hst}}{2})$，也可以选择其他模糊先验，例如$\pi_0(\beta,\sigma)=N(\hat\beta_{hst},RSS_{hst}(X_{hst}^TX_{hst})^{-1})Half-t(2, \sqrt{\frac{RSS_{hst}}{2(n-p)}})$。
 
+##### 随机权重
 
 ## 肿瘤项目
 
@@ -74,8 +77,136 @@ $$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^
 
 #### ANCOVA模型
 
+ANCOVA
+
 ```{r}
 library(rstan)
+rstan_options(auto_write = TRUE)
+options(mc.cores = min(parallel::detectCores()-1, 8))
+
+# --- Helper: build design matrices ---
+mk_design <- function(df, formula) {
+  mm <- model.matrix(formula, df)
+  Y <- model.response(model.frame(formula, df))
+  list(Y = as.numeric(Y), X = mm, cols = colnames(mm))
+}
+
+# --- Derive Normal–Inverse-Gamma prior from historical data ---
+nig_from_history <- function(formula, df) {
+  fit <- lm(formula, df)
+  beta <- coef(fit)
+  RSS <- sum(residuals(fit)^2)
+  Sigma <- vcov(fit)
+  L_Sigma <- t(chol(Sigma))
+
+  # Scaled by power a0 for power prior
+  a <- fit$df.residual/2
+  b <- RSS/2
+
+  list(beta = beta, L_Sigma = L_Sigma, RSS = RSS, a = a, b = b)
+}
+
+# --- Construct data list for Stan ---
+build_ancova_data <- function(df_cur, df_hst, formula,
+                              w_fixed = 0.5, estimate_w = FALSE,
+                              beta_vag = NULL, scale_vag = NULL,
+                              a_vag = NULL, b_vag = NULL) {
+  #prior_type <- match.arg(prior_type)
+  des_cur <- mk_design(df_cur, formula)
+
+  # historical informative prior (scaled by a0)
+  hist_info_mp <- nig_from_history(formula, df_hst)
+  #hist_info_a0 <- nig_from_history(des_hist$X, des_hist$y, a0 = a0_power)
+  
+  # vague prior
+  p <- ncol(des_cur$X)
+  if (is.null(beta_vag)) {
+    beta_vag <- hist_info_mp$beta
+  }
+  if (is.null(scale_vag)) {
+    L_Sigma_vag <- diag(1, p)
+  } else {
+    L_Sigma_vag <- t(chol(scale_vag))
+  }
+  if (is.null(a_vag)) {
+    a_vag <- 1/2
+  }
+  if (is.null(b_vag)) {
+    b_vag <- 3/2*hist_info_mp$RSS
+  }
+  
+  # ll0_hat = log-likelihood of historical data at MLE (for CPP normalization)
+  #ll0_hat <- as.numeric(logLik(lm(des_hst$y ~ des_hst$X - 1)))
+
+  list(
+    n = nrow(des_cur$X),
+    p = p,
+    Y = des_cur$Y,
+    X = des_cur$X,
+    beta_hst = hist_info_mp$beta,
+    L_Sigma_hst = hist_info_mp$L_Sigma,
+    a_hst = hist_info_mp$a,
+    b_hst = hist_info_mp$b,
+    beta_vag = beta_vag,
+    L_Sigma_vag = L_Sigma_vag,
+    a_vag = a_vag,
+    b_vag = b_vag,
+    #prior_type = ifelse(prior_type=="mixture", 1L, 2L),
+    w_fixed = w_fixed,
+    #a0_fixed = a0_fixed,
+    estimate_w = as.integer(estimate_w)
+    #estimate_a0 = as.integer(estimate_a0),
+    #n_hst = nrow(des_hst$X),
+    #p_hst = ncol(des_hst$X),
+    #Y_hst = des_hst$Y,
+    #X_hst = des_hst$X
+    #ll0_hat = ll0_hat
+  )
+}
+
+# --- Run Stan model ---
+run_ancova_conjugate <- function(df_cur, df_hst, formula,
+                                 #prior_type = c("mixture","power"),
+                                 w_fixed = 0.5, estimate_w = FALSE,
+                                 #a0_fixed = 0.5, estimate_a0 = FALSE,
+                                 #a0_power = 0.5,
+                                 iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
+  # dat <- build_ancova_data(df_cur, df_hst, formula,
+  #                          prior_type, w_fixed, estimate_w,
+  #                          a0_fixed, estimate_a0,
+  #                          a0_power = a0_power)
+  dat <- build_ancova_data(df_cur, df_hst, formula,
+                           w_fixed, estimate_w)
+  
+
+  stan_file <- "ancova_conj_mp.stan"
+  fit <- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
+  return(fit)
+}
+
+# --- Extract treatment effect posterior ---
+extract_tau <- function(fit_obj, tau_col) {
+  sm <- rstan::summary(fit_obj, pars = "beta")$summary
+  idx <- match(tau_col, fit_obj$dat$cols)
+  sm[idx, c("mean","2.5%","50%","97.5%","n_eff","Rhat")]
+}
+
+# --- Simulation ---
+n <- 500
+n_hst <- 300
+n_cur <- n - n_hst
+alpha <- 3
+tau <- -5
+gamma <- 0.9
+treatment <- rbinom(n, 1, 0.5)
+score_baseline <- sample(20:55, n, replace = T)
+e <- rnorm(n, sd = 3)
+score <- round(alpha + tau*treatment + gamma*score_baseline + e)
+data <- data.frame(score_baseline, treatment, score)
+data_hst <- data[1:n_hst,]
+data_cur <- data[(n_hst+1):n,]
+fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
+
 ```
 
 

@@ -40,9 +40,9 @@ model {
                   + inv_gamma_lpdf(sigma2 | a_hst, b_hst);
     real lp_ancova_conj_vag = multi_normal_cholesky_lpdf(beta | beta_vag, sqrt(sigma2) * L_Sigma_vag)
                   + inv_gamma_lpdf(sigma2 | a_vag, b_vag);
-    target += log_mix(w_eff, lp_inf, lp_vag);
+    target += log_mix(w_eff, lp_ancova_conj_hst, lp_ancova_conj_vag);
   }
 
   // Likelihood
-  y ~ normal(X * beta, sigma);
+  Y ~ normal(X * beta, sigma);
 }

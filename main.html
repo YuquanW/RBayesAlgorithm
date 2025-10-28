@@ -400,6 +400,8 @@ display: none;
 </div>
 <div id="ancova模型" class="section level4" number="3.1.1.2">
 <h4><span class="header-section-number">3.1.1.2</span> ANCOVA模型</h4>
+<div id="固定权重" class="section level5" number="3.1.1.2.1">
+<h5><span class="header-section-number">3.1.1.2.1</span> 固定权重</h5>
 <p>ANCOVA的模型假设如下：
 <span class="math display">\[Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).\]</span>
 也即，
@@ -409,9 +411,13 @@ display: none;
 因此，混合先验为
 <span class="math display">\[p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),\]</span>
 幂先验为 <span class="citation">(Ibrahim, Chen, and Sinha 2003)</span>
-<span class="math display">\[p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).\]</span>
-注意到当<span class="math inline">\(w\leq p/n\)</span>时，若<span class="math inline">\(\pi_0(\beta,\sigma^2)\)</span>也为improper prior，此时幂先验可能为improper prior。</p>
+<span class="math display">\[p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2}+w-1,\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).\]</span>
+注意到当<span class="math inline">\(w\leq (p+2)/(n+2)\)</span>时，若<span class="math inline">\(\pi_0(\beta,\sigma^2)\)</span>也为improper prior，此时幂先验可能为improper prior。</p>
 <p>对于<span class="math inline">\(\pi_0(\beta,\sigma^2)\)</span>的选取，既可以选择共轭先验，例如<span class="math inline">\(\pi_0(\beta,\sigma^2)=N(\hat\beta_{hst},\sigma^2I)InvGamma(\frac{1}{2}, \frac{3RSS_{hst}}{2})\)</span>，也可以选择其他模糊先验，例如<span class="math inline">\(\pi_0(\beta,\sigma)=N(\hat\beta_{hst},RSS_{hst}(X_{hst}^TX_{hst})^{-1})Half-t(2, \sqrt{\frac{RSS_{hst}}{2(n-p)}})\)</span>。</p>
+</div>
+<div id="随机权重" class="section level5" number="3.1.1.2.2">
+<h5><span class="header-section-number">3.1.1.2.2</span> 随机权重</h5>
+</div>
 </div>
 </div>
 </div>
@@ -421,6 +427,30 @@ display: none;
 </div>
 <div id="sec4" class="section level1" number="4">
 <h1><span class="header-section-number">4</span> Simulation Study</h1>
+<div id="非肿瘤项目-1" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> 非肿瘤项目</h2>
+<div id="连续变量终点-1" class="section level3" number="4.1.1">
+<h3><span class="header-section-number">4.1.1</span> 连续变量终点</h3>
+<div id="mmrm模型-1" class="section level4" number="4.1.1.1">
+<h4><span class="header-section-number">4.1.1.1</span> MMRM模型</h4>
+</div>
+<div id="ancova模型-1" class="section level4" number="4.1.1.2">
+<h4><span class="header-section-number">4.1.1.2</span> ANCOVA模型</h4>
+<pre class="r"><code>library(rstan)</code></pre>
+<pre><code>## Loading required package: StanHeaders</code></pre>
+<pre><code>## 
+## rstan version 2.32.7 (Stan version 2.32.2)</code></pre>
+<pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
+## options(mc.cores = parallel::detectCores()).
+## To avoid recompilation of unchanged Stan programs, we recommend calling
+## rstan_options(auto_write = TRUE)
+## For within-chain threading using `reduce_sum()` or `map_rect()` Stan functions,
+## change `threads_per_chain` option:
+## rstan_options(threads_per_chain = 1)</code></pre>
+<pre><code>## Do not specify &#39;-march=native&#39; in &#39;LOCAL_CPPFLAGS&#39; or a Makevars file</code></pre>
+</div>
+</div>
+</div>
 </div>
 <div id="sec5" class="section level1 unnumbered">
 <h1>Reference</h1>
