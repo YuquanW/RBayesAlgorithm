@@ -77,7 +77,7 @@ $$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^
 
 #### ANCOVA模型
 
-ANCOVA
+以下为ANCOVA
 
 ```{r}
 library(rstan)
