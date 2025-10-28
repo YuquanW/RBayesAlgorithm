@@ -17,25 +17,25 @@ knitr::opts_chunk$set(echo = TRUE)
 
 令$D$表示分析数据，$D_{hst}$表示外部数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$i=1,\dots,n$表示个体的下标。
 
-本文档用$p_{hst}(\theta)=L(\theta|D_{hst})\pi_{hst}(\theta)$表示历史先验，其中$\pi_{hst}(\theta)$通常取Jeffreys prior等无信息先验 [@Yang2023]。
+本文档用$p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_{hst}(\theta)$表示历史先验，其中$\pi_{hst}(\theta)$通常取Jeffreys prior等无信息先验 [@Yang2023]。
 
 ## 混合先验  
 
 混合先验将外部数据的似然函数和给定先验按一定的权重混合,
-$$p_{mp}(\theta|w) \propto wp_{hst}(\theta)+(1-w)\pi_0(\theta).$$
+$$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta).$$
 若无法确定$w$的值，可将$w$也看作随机变量，此时将由分析数据自适应决定权重分配,
-$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta)+(1-w)\pi_0(\theta)\right)\pi_1(w).$$
+$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta)\right)\pi_1(w).$$
 
 ## 幂先验
 
 幂先验的表达式如下：
-$$p_{pp}(\theta|w) \propto p_{hst}(\theta)^w\pi_0(\theta).$$
+$$p_{pp}(\theta|w) \propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta).$$
 从表达式不难得出，当$w=0$时，幂先验不借用外部数据$D_{hst}$；当 $w=1$时，幂先验完全借用外部数据$D_{hst}$。
 
 同样地，若无法确定$w$的值，幂先验也可将$w$也看作随机变量，此时有
-$$p_{pp}(\theta,w)\propto p_{hst}(\theta)^w\pi_0(\theta)\pi_1(w).$$
-然而，与混合先验不同的是，若不对$p_{hst}(\theta)^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Berry2010; @Robert2007]，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行标准化，
-$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta)^w\pi_0(\theta)}{\int p_{hst}(\theta)^w\pi_0(\theta)d\theta}\pi_1(w).$$
+$$p_{pp}(\theta,w)\propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\pi_1(w).$$
+然而，与混合先验不同的是，若不对$p_{hst}(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Berry2010; @Robert2007]，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行标准化，
+$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta|D_{hst})^w\pi_0(\theta)}{\int p_{hst}(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi_1(w).$$
 
 # Application and Case Study {#sec3}
 
@@ -54,7 +54,7 @@ $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2
 也即，
 $$Y\sim N(X\beta, \sigma^2I),$$
 其中$X=[1, A, Z]$，$\beta = [\alpha, \tau, \gamma^T]^T$。那么对于历史数据，取Jeffreys prior $\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2$，有
-$$p_{hst}(\theta)\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},$$
+$$p_{hst}(\theta|D_{hst})\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},$$
 因此，混合先验为
 $$p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),$$
 幂先验为 [@Ibrahim2003]
@@ -205,7 +205,7 @@ score <- round(alpha + tau*treatment + gamma*score_baseline + e)
 data <- data.frame(score_baseline, treatment, score)
 data_hst <- data[1:n_hst,]
 data_cur <- data[(n_hst+1):n,]
-fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
+#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
 
 ```
 

@@ -370,23 +370,23 @@ display: none;
 <div id="sec2" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Method and Notation</h1>
 <p>令<span class="math inline">\(D\)</span>表示分析数据，<span class="math inline">\(D_{hst}\)</span>表示外部数据，<span class="math inline">\(\theta\)</span>表示模型参数，<span class="math inline">\(w\in [0, 1]\)</span>表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令<span class="math inline">\((Y, A, Z)\)</span>分别表示分析数据的结局、治疗分组和协变量，<span class="math inline">\((Y_{hst}, A_{hst}, Z_{hst})\)</span>分别表示历史数据的结局、治疗分组和协变量，<span class="math inline">\(i=1,\dots,n\)</span>表示个体的下标。</p>
-<p>本文档用<span class="math inline">\(p_{hst}(\theta)=L(\theta|D_{hst})\pi_{hst}(\theta)\)</span>表示历史先验，其中<span class="math inline">\(\pi_{hst}(\theta)\)</span>通常取Jeffreys prior等无信息先验 <span class="citation">(Yang et al. 2023)</span>。</p>
+<p>本文档用<span class="math inline">\(p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_{hst}(\theta)\)</span>表示历史先验，其中<span class="math inline">\(\pi_{hst}(\theta)\)</span>通常取Jeffreys prior等无信息先验 <span class="citation">(Yang et al. 2023)</span>。</p>
 <div id="混合先验" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> 混合先验</h2>
 <p>混合先验将外部数据的似然函数和给定先验按一定的权重混合,
-<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta)+(1-w)\pi_0(\theta).\]</span>
+<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta).\]</span>
 若无法确定<span class="math inline">\(w\)</span>的值，可将<span class="math inline">\(w\)</span>也看作随机变量，此时将由分析数据自适应决定权重分配,
-<span class="math display">\[p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta)+(1-w)\pi_0(\theta)\right)\pi_1(w).\]</span></p>
+<span class="math display">\[p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta)\right)\pi_1(w).\]</span></p>
 </div>
 <div id="幂先验" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> 幂先验</h2>
 <p>幂先验的表达式如下：
-<span class="math display">\[p_{pp}(\theta|w) \propto p_{hst}(\theta)^w\pi_0(\theta).\]</span>
+<span class="math display">\[p_{pp}(\theta|w) \propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta).\]</span>
 从表达式不难得出，当<span class="math inline">\(w=0\)</span>时，幂先验不借用外部数据<span class="math inline">\(D_{hst}\)</span>；当 <span class="math inline">\(w=1\)</span>时，幂先验完全借用外部数据<span class="math inline">\(D_{hst}\)</span>。</p>
 <p>同样地，若无法确定<span class="math inline">\(w\)</span>的值，幂先验也可将<span class="math inline">\(w\)</span>也看作随机变量，此时有
-<span class="math display">\[p_{pp}(\theta,w)\propto p_{hst}(\theta)^w\pi_0(\theta)\pi_1(w).\]</span>
-然而，与混合先验不同的是，若不对<span class="math inline">\(p_{hst}(\theta)^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Berry et al. 2010; Robert 2007)</span>，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行标准化，
-<span class="math display">\[p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta)^w\pi_0(\theta)}{\int p_{hst}(\theta)^w\pi_0(\theta)d\theta}\pi_1(w).\]</span></p>
+<span class="math display">\[p_{pp}(\theta,w)\propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\pi_1(w).\]</span>
+然而，与混合先验不同的是，若不对<span class="math inline">\(p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Berry et al. 2010; Robert 2007)</span>，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行标准化，
+<span class="math display">\[p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta|D_{hst})^w\pi_0(\theta)}{\int p_{hst}(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi_1(w).\]</span></p>
 </div>
 </div>
 <div id="sec3" class="section level1" number="3">
@@ -407,7 +407,7 @@ display: none;
 也即，
 <span class="math display">\[Y\sim N(X\beta, \sigma^2I),\]</span>
 其中<span class="math inline">\(X=[1, A, Z]\)</span>，<span class="math inline">\(\beta = [\alpha, \tau, \gamma^T]^T\)</span>。那么对于历史数据，取Jeffreys prior <span class="math inline">\(\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2\)</span>，有
-<span class="math display">\[p_{hst}(\theta)\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},\]</span>
+<span class="math display">\[p_{hst}(\theta|D_{hst})\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},\]</span>
 因此，混合先验为
 <span class="math display">\[p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),\]</span>
 幂先验为 <span class="citation">(Ibrahim, Chen, and Sinha 2003)</span>
@@ -436,8 +436,11 @@ display: none;
 </div>
 <div id="ancova模型-1" class="section level4" number="4.1.1.2">
 <h4><span class="header-section-number">4.1.1.2</span> ANCOVA模型</h4>
+<p>以下为ANCOVA</p>
 <pre class="r"><code>library(rstan)</code></pre>
-<pre><code>## Loading required package: StanHeaders</code></pre>
+<pre><code>## Warning: 程序包&#39;rstan&#39;是用R版本4.4.3 来建造的</code></pre>
+<pre><code>## 载入需要的程序包：StanHeaders</code></pre>
+<pre><code>## Warning: 程序包&#39;StanHeaders&#39;是用R版本4.4.3 来建造的</code></pre>
 <pre><code>## 
 ## rstan version 2.32.7 (Stan version 2.32.2)</code></pre>
 <pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
@@ -448,6 +451,131 @@ display: none;
 ## change `threads_per_chain` option:
 ## rstan_options(threads_per_chain = 1)</code></pre>
 <pre><code>## Do not specify &#39;-march=native&#39; in &#39;LOCAL_CPPFLAGS&#39; or a Makevars file</code></pre>
+<pre class="r"><code>rstan_options(auto_write = TRUE)
+options(mc.cores = min(parallel::detectCores()-1, 8))
+
+# --- Helper: build design matrices ---
+mk_design &lt;- function(df, formula) {
+  mm &lt;- model.matrix(formula, df)
+  Y &lt;- model.response(model.frame(formula, df))
+  list(Y = as.numeric(Y), X = mm, cols = colnames(mm))
+}
+
+# --- Derive Normal–Inverse-Gamma prior from historical data ---
+nig_from_history &lt;- function(formula, df) {
+  fit &lt;- lm(formula, df)
+  beta &lt;- coef(fit)
+  RSS &lt;- sum(residuals(fit)^2)
+  Sigma &lt;- vcov(fit)
+  L_Sigma &lt;- t(chol(Sigma))
+
+  # Scaled by power a0 for power prior
+  a &lt;- fit$df.residual/2
+  b &lt;- RSS/2
+
+  list(beta = beta, L_Sigma = L_Sigma, RSS = RSS, a = a, b = b)
+}
+
+# --- Construct data list for Stan ---
+build_ancova_data &lt;- function(df_cur, df_hst, formula,
+                              w_fixed = 0.5, estimate_w = FALSE,
+                              beta_vag = NULL, scale_vag = NULL,
+                              a_vag = NULL, b_vag = NULL) {
+  #prior_type &lt;- match.arg(prior_type)
+  des_cur &lt;- mk_design(df_cur, formula)
+
+  # historical informative prior (scaled by a0)
+  hist_info_mp &lt;- nig_from_history(formula, df_hst)
+  #hist_info_a0 &lt;- nig_from_history(des_hist$X, des_hist$y, a0 = a0_power)
+  
+  # vague prior
+  p &lt;- ncol(des_cur$X)
+  if (is.null(beta_vag)) {
+    beta_vag &lt;- hist_info_mp$beta
+  }
+  if (is.null(scale_vag)) {
+    L_Sigma_vag &lt;- diag(1, p)
+  } else {
+    L_Sigma_vag &lt;- t(chol(scale_vag))
+  }
+  if (is.null(a_vag)) {
+    a_vag &lt;- 1/2
+  }
+  if (is.null(b_vag)) {
+    b_vag &lt;- 3/2*hist_info_mp$RSS
+  }
+  
+  # ll0_hat = log-likelihood of historical data at MLE (for CPP normalization)
+  #ll0_hat &lt;- as.numeric(logLik(lm(des_hst$y ~ des_hst$X - 1)))
+
+  list(
+    n = nrow(des_cur$X),
+    p = p,
+    Y = des_cur$Y,
+    X = des_cur$X,
+    beta_hst = hist_info_mp$beta,
+    L_Sigma_hst = hist_info_mp$L_Sigma,
+    a_hst = hist_info_mp$a,
+    b_hst = hist_info_mp$b,
+    beta_vag = beta_vag,
+    L_Sigma_vag = L_Sigma_vag,
+    a_vag = a_vag,
+    b_vag = b_vag,
+    #prior_type = ifelse(prior_type==&quot;mixture&quot;, 1L, 2L),
+    w_fixed = w_fixed,
+    #a0_fixed = a0_fixed,
+    estimate_w = as.integer(estimate_w)
+    #estimate_a0 = as.integer(estimate_a0),
+    #n_hst = nrow(des_hst$X),
+    #p_hst = ncol(des_hst$X),
+    #Y_hst = des_hst$Y,
+    #X_hst = des_hst$X
+    #ll0_hat = ll0_hat
+  )
+}
+
+# --- Run Stan model ---
+run_ancova_conjugate &lt;- function(df_cur, df_hst, formula,
+                                 #prior_type = c(&quot;mixture&quot;,&quot;power&quot;),
+                                 w_fixed = 0.5, estimate_w = FALSE,
+                                 #a0_fixed = 0.5, estimate_a0 = FALSE,
+                                 #a0_power = 0.5,
+                                 iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
+  # dat &lt;- build_ancova_data(df_cur, df_hst, formula,
+  #                          prior_type, w_fixed, estimate_w,
+  #                          a0_fixed, estimate_a0,
+  #                          a0_power = a0_power)
+  dat &lt;- build_ancova_data(df_cur, df_hst, formula,
+                           w_fixed, estimate_w)
+  
+
+  stan_file &lt;- &quot;ancova_conj_mp.stan&quot;
+  fit &lt;- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
+  return(fit)
+}
+
+# --- Extract treatment effect posterior ---
+extract_tau &lt;- function(fit_obj, tau_col) {
+  sm &lt;- rstan::summary(fit_obj, pars = &quot;beta&quot;)$summary
+  idx &lt;- match(tau_col, fit_obj$dat$cols)
+  sm[idx, c(&quot;mean&quot;,&quot;2.5%&quot;,&quot;50%&quot;,&quot;97.5%&quot;,&quot;n_eff&quot;,&quot;Rhat&quot;)]
+}
+
+# --- Simulation ---
+n &lt;- 500
+n_hst &lt;- 300
+n_cur &lt;- n - n_hst
+alpha &lt;- 3
+tau &lt;- -5
+gamma &lt;- 0.9
+treatment &lt;- rbinom(n, 1, 0.5)
+score_baseline &lt;- sample(20:55, n, replace = T)
+e &lt;- rnorm(n, sd = 3)
+score &lt;- round(alpha + tau*treatment + gamma*score_baseline + e)
+data &lt;- data.frame(score_baseline, treatment, score)
+data_hst &lt;- data[1:n_hst,]
+data_cur &lt;- data[(n_hst+1):n,]
+#fit_conj_mp &lt;- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)</code></pre>
 </div>
 </div>
 </div>
