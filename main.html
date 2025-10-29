@@ -369,24 +369,24 @@ display: none;
 </div>
 <div id="sec2" class="section level1" number="2">
 <h1><span class="header-section-number">2</span> Method and Notation</h1>
-<p>令<span class="math inline">\(D\)</span>表示分析数据，<span class="math inline">\(D_{hst}\)</span>表示外部数据，<span class="math inline">\(\theta\)</span>表示模型参数，<span class="math inline">\(w\in [0, 1]\)</span>表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令<span class="math inline">\((Y, A, Z)\)</span>分别表示分析数据的结局、治疗分组和协变量，<span class="math inline">\((Y_{hst}, A_{hst}, Z_{hst})\)</span>分别表示历史数据的结局、治疗分组和协变量，<span class="math inline">\(i=1,\dots,n\)</span>表示个体的下标。</p>
-<p>本文档用<span class="math inline">\(p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_{hst}(\theta)\)</span>表示历史先验，其中<span class="math inline">\(\pi_{hst}(\theta)\)</span>通常取Jeffreys prior等无信息先验 <span class="citation">(Yang et al. 2023)</span>。</p>
+<p>令<span class="math inline">\(D\)</span>表示分析数据，<span class="math inline">\(D_{hst}\)</span>表示历史数据，<span class="math inline">\(\theta\)</span>表示模型参数，<span class="math inline">\(w\in [0, 1]\)</span>表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令<span class="math inline">\((Y, A, Z)\)</span>分别表示分析数据的结局、治疗分组和协变量，<span class="math inline">\((Y_{hst}, A_{hst}, Z_{hst})\)</span>分别表示历史数据的结局、治疗分组和协变量，<span class="math inline">\(i=1,\dots,n\)</span>表示个体的下标。</p>
+<p>本文档用<span class="math inline">\(p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_0(\theta)\)</span>表示信息先验，其中<span class="math inline">\(\pi_0(\theta)\)</span>通常取Jeffreys’ prior等无信息先验或模糊先验 <span class="citation">(Schmidli et al. 2014; Joseph G. Ibrahim et al. 2015; Yang et al. 2023)</span>。</p>
 <div id="混合先验" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> 混合先验</h2>
-<p>混合先验将外部数据的似然函数和给定先验按一定的权重混合,
-<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta).\]</span>
+<p>混合先验将信息先验<span class="math inline">\(p_{hst}(\theta|D_{hst})\)</span>和给定先验<span class="math inline">\(\pi_{vag}(\theta)\)</span>按一定的权重混合，其中，<span class="math inline">\(\pi_{vag}(\theta)\)</span>通常取弱信息共轭先验（如对二分类终点，可取Jeffreys’ prior；对其他终点可取unit information prior）<span class="citation">(Kass and Wasserman 1995; Schmidli et al. 2014)</span>，
+<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).\]</span>
 若无法确定<span class="math inline">\(w\)</span>的值，可将<span class="math inline">\(w\)</span>也看作随机变量，此时将由分析数据自适应决定权重分配,
-<span class="math display">\[p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta)\right)\pi_1(w).\]</span></p>
+<span class="math display">\[p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).\]</span></p>
 </div>
 <div id="幂先验" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> 幂先验</h2>
 <p>幂先验的表达式如下：
-<span class="math display">\[p_{pp}(\theta|w) \propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta).\]</span>
-从表达式不难得出，当<span class="math inline">\(w=0\)</span>时，幂先验不借用外部数据<span class="math inline">\(D_{hst}\)</span>；当 <span class="math inline">\(w=1\)</span>时，幂先验完全借用外部数据<span class="math inline">\(D_{hst}\)</span>。</p>
+<span class="math display">\[p_{pp}(\theta|w) \propto L(\theta|D_{hst})^w\pi_0(\theta).\]</span>
+从表达式不难得出，当<span class="math inline">\(w=0\)</span>时，幂先验不借用历史数据<span class="math inline">\(D_{hst}\)</span>；当 <span class="math inline">\(w=1\)</span>时，幂先验完全借用历史数据<span class="math inline">\(D_{hst}\)</span>。</p>
 <p>同样地，若无法确定<span class="math inline">\(w\)</span>的值，幂先验也可将<span class="math inline">\(w\)</span>也看作随机变量，此时有
-<span class="math display">\[p_{pp}(\theta,w)\propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\pi_1(w).\]</span>
-然而，与混合先验不同的是，若不对<span class="math inline">\(p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Berry et al. 2010; Robert 2007)</span>，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行标准化，
-<span class="math display">\[p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta|D_{hst})^w\pi_0(\theta)}{\int p_{hst}(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi_1(w).\]</span></p>
+<span class="math display">\[p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).\]</span>
+然而，与混合先验不同的是，若不对<span class="math inline">\(L(\theta|D_{hst})^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Robert 2007; Berry et al. 2010)</span>：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行如下标准化，
+<span class="math display">\[p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).\]</span></p>
 </div>
 </div>
 <div id="sec3" class="section level1" number="3">
@@ -407,16 +407,23 @@ display: none;
 也即，
 <span class="math display">\[Y\sim N(X\beta, \sigma^2I),\]</span>
 其中<span class="math inline">\(X=[1, A, Z]\)</span>，<span class="math inline">\(\beta = [\alpha, \tau, \gamma^T]^T\)</span>。那么对于历史数据，取Jeffreys prior <span class="math inline">\(\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2\)</span>，有
-<span class="math display">\[p_{hst}(\theta|D_{hst})\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},\]</span>
+<span class="math display">\[\begin{equation*}
+\begin{aligned}
+p_{hst}(\theta|D_{hst}) &amp; \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\
+&amp;=N\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right),
+\end{aligned}
+\end{equation*}\]</span>
 因此，混合先验为
-<span class="math display">\[p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),\]</span>
-幂先验为 <span class="citation">(Ibrahim, Chen, and Sinha 2003)</span>
-<span class="math display">\[p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2}+w-1,\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).\]</span>
-注意到当<span class="math inline">\(w\leq (p+2)/(n+2)\)</span>时，若<span class="math inline">\(\pi_0(\beta,\sigma^2)\)</span>也为improper prior，此时幂先验可能为improper prior。</p>
-<p>对于<span class="math inline">\(\pi_0(\beta,\sigma^2)\)</span>的选取，既可以选择共轭先验，例如<span class="math inline">\(\pi_0(\beta,\sigma^2)=N(\hat\beta_{hst},\sigma^2I)InvGamma(\frac{1}{2}, \frac{3RSS_{hst}}{2})\)</span>，也可以选择其他模糊先验，例如<span class="math inline">\(\pi_0(\beta,\sigma)=N(\hat\beta_{hst},RSS_{hst}(X_{hst}^TX_{hst})^{-1})Half-t(2, \sqrt{\frac{RSS_{hst}}{2(n-p)}})\)</span>。</p>
-</div>
-<div id="随机权重" class="section level5" number="3.1.1.2.2">
-<h5><span class="header-section-number">3.1.1.2.2</span> 随机权重</h5>
+<span class="math display">\[p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\sigma^2).\]</span>
+对于<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)\)</span>的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot\)</span><span class="math inline">\(InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})\)</span>，形式上可解释为unit information prior。</p>
+<p>幂先验为 <span class="citation">(Joseph G. Ibrahim, Chen, and Sinha 2003)</span>
+<span class="math display">\[\begin{equation*}
+\begin{aligned}
+p_{pp}(\beta,\sigma^2|w)&amp;\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\ &amp;=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right).
+\end{aligned}
+\end{equation*}\]</span>
+注意到当<span class="math inline">\(w\leq p/n\)</span>时，幂先验可能为improper prior。
+##### 随机权重</p>
 </div>
 </div>
 </div>
@@ -438,9 +445,7 @@ display: none;
 <h4><span class="header-section-number">4.1.1.2</span> ANCOVA模型</h4>
 <p>以下为ANCOVA</p>
 <pre class="r"><code>library(rstan)</code></pre>
-<pre><code>## Warning: 程序包&#39;rstan&#39;是用R版本4.4.3 来建造的</code></pre>
-<pre><code>## 载入需要的程序包：StanHeaders</code></pre>
-<pre><code>## Warning: 程序包&#39;StanHeaders&#39;是用R版本4.4.3 来建造的</code></pre>
+<pre><code>## Loading required package: StanHeaders</code></pre>
 <pre><code>## 
 ## rstan version 2.32.7 (Stan version 2.32.2)</code></pre>
 <pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
@@ -494,7 +499,7 @@ build_ancova_data &lt;- function(df_cur, df_hst, formula,
     beta_vag &lt;- hist_info_mp$beta
   }
   if (is.null(scale_vag)) {
-    L_Sigma_vag &lt;- diag(1, p)
+    L_Sigma_vag &lt;- hist_info_mp$L_Sigma
   } else {
     L_Sigma_vag &lt;- t(chol(scale_vag))
   }
@@ -502,7 +507,7 @@ build_ancova_data &lt;- function(df_cur, df_hst, formula,
     a_vag &lt;- 1/2
   }
   if (is.null(b_vag)) {
-    b_vag &lt;- 3/2*hist_info_mp$RSS
+    b_vag &lt;- 1/2*hist_info_mp$RSS
   }
   
   # ll0_hat = log-likelihood of historical data at MLE (for CPP normalization)
@@ -586,11 +591,20 @@ data_cur &lt;- data[(n_hst+1):n,]
 <div id="ref-Berry2010" class="csl-entry">
 Berry, Scott M., Bradley P. Carlin, J. Jack Lee, and Peter Muller. 2010. <em>Bayesian Adaptive Methods for Clinical Trials</em>. 1st ed. Boca Raton, FL: Chapman; Hall/CRC.
 </div>
+<div id="ref-Ibrahim2015" class="csl-entry">
+Ibrahim, Joseph G., Ming-Hui Chen, Yeongjin Gwon, and Fang Chen. 2015. <span>“The Power Prior: Theory and Applications.”</span> <em>Statistics in Medicine</em> 34 (28): 3724–49.
+</div>
 <div id="ref-Ibrahim2003" class="csl-entry">
 Ibrahim, Joseph G, Ming-Hui Chen, and Debajyoti Sinha. 2003. <span>“On Optimality Properties of the Power Prior.”</span> <em>Journal of the American Statistical Association</em> 98 (461): 204–13.
 </div>
+<div id="ref-Kass1995" class="csl-entry">
+Kass, Robert E., and Larry Wasserman. 1995. <span>“A Reference Bayesian Test for Nested Hypotheses and Its Relationship to the Schwarz Criterion.”</span> <em>Journal of the American Statistical Association</em> 90 (431): 928–34.
+</div>
 <div id="ref-Robert2007" class="csl-entry">
 Robert, Christian P. 2007. <em>The Bayesian Choice: From Decision-Theoretic Foundations to Computational Implementation</em>. 2nd ed. New York: Springer.
+</div>
+<div id="ref-Schmidli2014" class="csl-entry">
+Schmidli, Heinz, Sandro Gsteiger, Satrajit Roychoudhury, Anthony O’Hagan, David Spiegelhalter, and Beat Neuenschwander. 2014. <span>“Robust Meta-Analytic-Predictive Priors in Clinical Trials with Historical Control Information.”</span> <em>Biometrics</em> 70 (4): 1023–32.
 </div>
 <div id="ref-Yang2023" class="csl-entry">
 Yang, Peng, Yuansong Zhao, Lei Nie, Jonathon Vallejo, and Ying Yuan. 2023. <span>“SAM: Self-Adapting Mixture Prior to Dynamically Borrow Information from Historical Data in Clinical Trials.”</span> <em>Biometrics</em> 79 (4): 2857–68.

@@ -15,27 +15,27 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Method and Notation {#sec2}
 
-令$D$表示分析数据，$D_{hst}$表示外部数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$i=1,\dots,n$表示个体的下标。
+令$D$表示分析数据，$D_{hst}$表示历史数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$i=1,\dots,n$表示个体的下标。
 
-本文档用$p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_{hst}(\theta)$表示历史先验，其中$\pi_{hst}(\theta)$通常取Jeffreys prior等无信息先验 [@Yang2023]。
+本文档用$p_{hst}(\theta|D_{hst})\propto L(\theta|D_{hst})\pi_0(\theta)$表示信息先验，其中$\pi_0(\theta)$通常取Jeffreys' prior等无信息先验或模糊先验 [@Schmidli2014; @Ibrahim2015; @Yang2023]。
 
 ## 混合先验  
 
-混合先验将外部数据的似然函数和给定先验按一定的权重混合,
-$$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta).$$
+混合先验将信息先验$p_{hst}(\theta|D_{hst})$和给定先验$\pi_{vag}(\theta)$按一定的权重混合，其中，$\pi_{vag}(\theta)$通常取弱信息共轭先验（如对二分类终点，可取Jeffreys' prior；对其他终点可取unit information prior）[@Kass1995; @Schmidli2014]，
+$$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).$$
 若无法确定$w$的值，可将$w$也看作随机变量，此时将由分析数据自适应决定权重分配,
-$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_0(\theta)\right)\pi_1(w).$$
+$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).$$
 
 ## 幂先验
 
 幂先验的表达式如下：
-$$p_{pp}(\theta|w) \propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta).$$
-从表达式不难得出，当$w=0$时，幂先验不借用外部数据$D_{hst}$；当 $w=1$时，幂先验完全借用外部数据$D_{hst}$。
+$$p_{pp}(\theta|w) \propto L(\theta|D_{hst})^w\pi_0(\theta).$$
+从表达式不难得出，当$w=0$时，幂先验不借用历史数据$D_{hst}$；当 $w=1$时，幂先验完全借用历史数据$D_{hst}$。
 
 同样地，若无法确定$w$的值，幂先验也可将$w$也看作随机变量，此时有
-$$p_{pp}(\theta,w)\propto p_{hst}(\theta|D_{hst})^w\pi_0(\theta)\pi_1(w).$$
-然而，与混合先验不同的是，若不对$p_{hst}(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Berry2010; @Robert2007]，也即当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行标准化，
-$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi_1(w)=\frac{p_{hst}(\theta|D_{hst})^w\pi_0(\theta)}{\int p_{hst}(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi_1(w).$$
+$$p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).$$
+然而，与混合先验不同的是，若不对$L(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Robert2007; @Berry2010]：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行如下标准化，
+$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).$$
 
 # Application and Case Study {#sec3}
 
@@ -54,15 +54,24 @@ $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2
 也即，
 $$Y\sim N(X\beta, \sigma^2I),$$
 其中$X=[1, A, Z]$，$\beta = [\alpha, \tau, \gamma^T]^T$。那么对于历史数据，取Jeffreys prior $\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2$，有
-$$p_{hst}(\theta|D_{hst})\propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\},$$
+\begin{equation*}
+\begin{aligned}
+p_{hst}(\theta|D_{hst}) & \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\
+&=N\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right),
+\end{aligned}
+\end{equation*}
 因此，混合先验为
-$$p_{mp}(\beta,\sigma^2|w)\sim wN\left(\hat\beta_{hst},\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{n-p}{2},\frac{RSS_{hst}}{2}\right)+(1-w)\pi_0(\beta,\sigma^2),$$
+$$p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\sigma^2).$$
+对于$\pi_{vag}(\beta,\sigma^2)$的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如$\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot$$InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$，形式上可解释为unit information prior。
+
+
 幂先验为 [@Ibrahim2003]
-$$p_{pp}(\beta,\sigma^2|w)\propto N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2}+w-1,\frac{wRSS_{hst}}{2}\right)\pi_0(\beta,\sigma^2).$$
-注意到当$w\leq (p+2)/(n+2)$时，若$\pi_0(\beta,\sigma^2)$也为improper prior，此时幂先验可能为improper prior。
-
-对于$\pi_0(\beta,\sigma^2)$的选取，既可以选择共轭先验，例如$\pi_0(\beta,\sigma^2)=N(\hat\beta_{hst},\sigma^2I)InvGamma(\frac{1}{2}, \frac{3RSS_{hst}}{2})$，也可以选择其他模糊先验，例如$\pi_0(\beta,\sigma)=N(\hat\beta_{hst},RSS_{hst}(X_{hst}^TX_{hst})^{-1})Half-t(2, \sqrt{\frac{RSS_{hst}}{2(n-p)}})$。
-
+\begin{equation*}
+\begin{aligned}
+p_{pp}(\beta,\sigma^2|w)&\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\ &=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right).
+\end{aligned}
+\end{equation*}
+注意到当$w\leq p/n$时，幂先验可能为improper prior。
 ##### 随机权重
 
 ## 肿瘤项目
@@ -92,15 +101,17 @@ mk_design <- function(df, formula) {
 }
 
 # --- Derive Normal–Inverse-Gamma prior from historical data ---
-nig_from_history <- function(formula, df) {
-  fit <- lm(formula, df)
+nig_from_history <- function(X, Y) {
+  n <- nrow(X)
+  p <- ncol(X)
+  fit <- lm.fit(X, Y)
   beta <- coef(fit)
   RSS <- sum(residuals(fit)^2)
-  Sigma <- vcov(fit)
-  L_Sigma <- t(chol(Sigma))
+  XtX <- solve(crossprod(X))
+  L_Sigma <- t(chol(XtX))
 
   # Scaled by power a0 for power prior
-  a <- fit$df.residual/2
+  a <- (n - p)/2
   b <- RSS/2
 
   list(beta = beta, L_Sigma = L_Sigma, RSS = RSS, a = a, b = b)
@@ -113,18 +124,18 @@ build_ancova_data <- function(df_cur, df_hst, formula,
                               a_vag = NULL, b_vag = NULL) {
   #prior_type <- match.arg(prior_type)
   des_cur <- mk_design(df_cur, formula)
+  des_hst <- mk_design(df_hst, formula)
 
   # historical informative prior (scaled by a0)
-  hist_info_mp <- nig_from_history(formula, df_hst)
+  hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
   #hist_info_a0 <- nig_from_history(des_hist$X, des_hist$y, a0 = a0_power)
   
   # vague prior
-  p <- ncol(des_cur$X)
   if (is.null(beta_vag)) {
     beta_vag <- hist_info_mp$beta
   }
   if (is.null(scale_vag)) {
-    L_Sigma_vag <- diag(1, p)
+    L_Sigma_vag <- sqrt(nrow(des_hst$X))*hist_info_mp$L_Sigma
   } else {
     L_Sigma_vag <- t(chol(scale_vag))
   }
@@ -132,7 +143,7 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     a_vag <- 1/2
   }
   if (is.null(b_vag)) {
-    b_vag <- 3/2*hist_info_mp$RSS
+    b_vag <- 1/2*hist_info_mp$RSS
   }
   
   # ll0_hat = log-likelihood of historical data at MLE (for CPP normalization)
@@ -140,7 +151,7 @@ build_ancova_data <- function(df_cur, df_hst, formula,
 
   list(
     n = nrow(des_cur$X),
-    p = p,
+    p = ncol(des_cur$X),
     Y = des_cur$Y,
     X = des_cur$X,
     beta_hst = hist_info_mp$beta,
@@ -205,7 +216,7 @@ score <- round(alpha + tau*treatment + gamma*score_baseline + e)
 data <- data.frame(score_baseline, treatment, score)
 data_hst <- data[1:n_hst,]
 data_cur <- data[(n_hst+1):n,]
-#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
+fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
 
 ```
 

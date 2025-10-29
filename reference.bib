@@ -39,3 +39,39 @@ publisher = {ASA Website}
     abstract = {Mixture priors provide an intuitive way to incorporate historical data while accounting for potential prior-data conflict by combining an informative prior with a noninformative prior. However, prespecifying the mixing weight for each component remains a crucial challenge. Ideally, the mixing weight should reflect the degree of prior-data conflict, which is often unknown beforehand, posing a significant obstacle to the application and acceptance of mixture priors. To address this challenge, we introduce self-adapting mixture (SAM) priors that determine the mixing weight using likelihood ratio test statistics or Bayes factors. SAM priors are data-driven and self-adapting, favoring the informative (noninformative) prior component when there is little (substantial) evidence of prior-data conflict. Consequently, SAM priors achieve dynamic information borrowing. We demonstrate that SAM priors exhibit desirable properties in both finite and large samples and achieve information-borrowing consistency. Moreover, SAM priors are easy to compute, data-driven, and calibration-free, mitigating the risk of data dredging. Numerical studies show that SAM priors outperform existing methods in adopting prior-data conflicts effectively. We developed R package “SAMprior” and web application that are freely available at CRAN and www.trialdesign.org to facilitate the use of SAM priors.},
     issn = {0006-341X}
 }
+
+@article{Ibrahim2015,
+author = {Ibrahim, Joseph G. and Chen, Ming-Hui and Gwon, Yeongjin and Chen, Fang},
+title = {The power prior: theory and applications},
+journal = {Statistics in Medicine},
+volume = {34},
+number = {28},
+pages = {3724-3749},
+keywords = {Bayesian design, borrowing, clinical trials, discounting, historical data, informative prior},
+abstract = {The power prior has been widely used in many applications covering a large number of disciplines. The power prior is intended to be an informative prior constructed from historical data. It has been used in clinical trials, genetics, health care, psychology, environmental health, engineering, economics, and business. It has also been applied for a wide variety of models and settings, both in the experimental design and analysis contexts. In this review article, we give an A-to-Z exposition of the power prior and its applications to date. We review its theoretical properties, variations in its formulation, statistical contexts for which it has been used, applications, and its advantages over other informative priors. We review models for which it has been used, including generalized linear models, survival models, and random effects models. Statistical areas where the power prior has been used include model selection, experimental design, hierarchical modeling, and conjugate priors. Frequentist properties of power priors in posterior inference are established, and a simulation study is conducted to further examine the empirical performance of the posterior estimates with power priors. Real data analyses are given illustrating the power prior as well as the use of the power prior in the Bayesian design of clinical trials. Copyright © 2015 John Wiley \& Sons, Ltd.},
+year = {2015}
+}
+
+@article{Schmidli2014,
+    author = {Schmidli, Heinz and Gsteiger, Sandro and Roychoudhury, Satrajit and O'Hagan, Anthony and Spiegelhalter, David and Neuenschwander, Beat},
+    title = {Robust Meta-Analytic-Predictive Priors in Clinical Trials with Historical Control Information},
+    journal = {Biometrics},
+    volume = {70},
+    number = {4},
+    pages = {1023-1032},
+    year = {2014},
+    month = {10},
+    abstract = {Historical information is always relevant for clinical trial design. Additionally, if incorporated in the analysis of a new trial, historical data allow to reduce the number of subjects. This decreases costs and trial duration, facilitates recruitment, and may be more ethical. Yet, under prior-data conflict, a too optimistic use of historical data may be inappropriate. We address this challenge by deriving a Bayesian meta-analytic-predictive prior from historical data, which is then combined with the new data. This prospective approach is equivalent to a meta-analytic-combined analysis of historical and new data if parameters are exchangeable across trials. The prospective Bayesian version requires a good approximation of the meta-analytic-predictive prior, which is not available analytically. We propose two- or three-component mixtures of standard priors, which allow for good approximations and, for the one-parameter exponential family, straightforward posterior calculations. Moreover, since one of the mixture components is usually vague, mixture priors will often be heavy-tailed and therefore robust. Further robustness and a more rapid reaction to prior-data conflicts can be achieved by adding an extra weakly-informative mixture component. Use of historical prior information is particularly attractive for adaptive trials, as the randomization ratio can then be changed in case of prior-data conflict. Both frequentist operating characteristics and posterior summaries for various data scenarios show that these designs have desirable properties. We illustrate the methodology for a phase II proof-of-concept trial with historical controls from four studies. Robust meta-analytic-predictive priors alleviate prior-data conflicts ‘ they should encourage better and more frequent use of historical data in clinical trials.},
+    issn = {0006-341X}
+}
+
+@article{Kass1995,
+author = {Robert E. Kass and Larry Wasserman},
+title = {A Reference Bayesian Test for Nested Hypotheses and its Relationship to the Schwarz Criterion},
+journal = {Journal of the American Statistical Association},
+volume = {90},
+number = {431},
+pages = {928--934},
+year = {1995},
+publisher = {ASA Website}
+}
