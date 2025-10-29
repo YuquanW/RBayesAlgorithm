@@ -62,7 +62,7 @@ p_{hst}(\theta|D_{hst}) & \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1
 \end{equation*}
 因此，混合先验为
 $$p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\sigma^2).$$
-对于$\pi_{vag}(\beta,\sigma^2)$的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如$\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot$$InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$，形式上可解释为unit information prior。
+对于$\pi_{vag}(\beta,\sigma^2)$的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如$\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot$$InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$。
 
 
 幂先验为 [@Ibrahim2003]
@@ -72,6 +72,7 @@ p_{pp}(\beta,\sigma^2|w)&\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1
 \end{aligned}
 \end{equation*}
 注意到当$w\leq p/n$时，幂先验可能为improper prior。
+
 ##### 随机权重
 
 ## 肿瘤项目
