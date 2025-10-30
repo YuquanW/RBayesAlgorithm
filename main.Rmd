@@ -49,13 +49,17 @@ $$p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).$$
 $$p_{npp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).$$
 经过标准化的幂先验又称为NPP (Normalized power prior) 或MPP (Modified power prior)[@Ibrahim2015; @Banbeta2019]。对于initial prior $\pi_0(\theta)$的选择，从代码实施和后验的收敛角度考虑，建议$\pi_0(\theta)$取proper prior。
 
-需要注意的是，NPP中的标准化项$C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta$通常没有显式表达式，因此常使用积分近似，具体的算法主要包括以下几类：
+NPP中的标准化项$C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta$通常没有显式表达式，因此常使用积分近似，具体的算法主要包括以下几类：
 
 * Laplace approximation
-* Path sampling [@Friel2008; @Ye2022]
 * Monte Carlo Metropolis-Hastings (MCMH) algorithm [@Liang2013]
+* Path sampling [@Friel2008; @Ye2022]
 
-下面主要介绍path sampling算法。@Friel2008 在论文中给出的主要理论结果为
+由于$w$取值较小时，使用Laplace approximation可能会有较大偏差，本文档仅介绍后两种方法。使用MH算法从NPP相应的后验分布中抽样时，主要困难在于rejection的步骤中，比值$C(w)/C(w^\prime)$无法计算。基于MCMH算法的思想，一种可行的方法是在MH算法中嵌入bridge sampling：
+$$\frac{C(w)}{C(w^\prime)}=\frac{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}{\int L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)d\theta}=\int\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)}\cdot\frac{L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)}{\int L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)d\theta}d\theta=\lim_{M\to\infty}\frac{1}{M}\sum_{i=1}^M\frac{L(\theta_i|D_{hst})^w}{L(\theta_i|D_{hst})^{w^\prime}}, a.s.,$$
+其中$\theta_i\sim p_{pp}(\theta|w^\prime)\propto L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)$。因此，我们可以通过MCMC算法抽取足够多的$\theta_i$来计算$C(w)/C(w^\prime)$。
+
+Path sampling算法主要基于 @Friel2008 在论文中给出的理论结果
 
 $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 其中$p_{pp}(\theta|w^\ast)\propto L(\theta|D_{hst})^{w^\ast}\pi_0(\theta)$。因此，通过先在$[0, 1]$区间划分$K$个网格，对于每一个网格端点$w_k$，使用MCMC算法从$p_{pp}(\theta|w_k)$分布对$\theta$抽样，可以近似$E_{p_{pp}(\theta|w_k)}[l(\theta|D_{hst})]$，最后基于网格和近似得到的期望可以近似计算$\log C(w)$。具体算法如下 [@Ye2022]：
@@ -65,6 +69,8 @@ $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 * Step 2: Calculate $h(w_l) = \sum^M_{j=1}l(\theta_l^{(j)}|D_{hst})/M$.
 * Step 3: Calculate $\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}$ (the Trapezoidal rule).
 * Step 4: Increase $l$ by 1. If $l \leq n$ then repeat Steps 1 to 3.
+
+相较于MCMH算法，由于每次从MH算法的proposal distribution中抽样时都要进行一次额外的MCMC抽样计算 
 
 # Application and Case Study {#sec3}
 
