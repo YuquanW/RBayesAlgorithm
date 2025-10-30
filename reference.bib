@@ -75,3 +75,53 @@ pages = {928--934},
 year = {1995},
 publisher = {ASA Website}
 }
+
+@article{Banbeta2019,
+author = {Banbeta, Akalu and van Rosmalen, Joost and Dejardin, David and Lesaffre, Emmanuel},
+title = {Modified power prior with multiple historical trials for binary endpoints},
+journal = {Statistics in Medicine},
+volume = {38},
+number = {7},
+pages = {1147-1169},
+keywords = {Bayesian inference, dependent weights, modified power prior, multiple historical trials},
+abstract = {Including historical data may increase the power of the analysis of a current clinical trial and reduce the sample size of the study. Recently, several Bayesian methods for incorporating historical data have been proposed. One of the methods consists of specifying a so-called power prior whereby the historical likelihood is downweighted with a weight parameter. When the weight parameter is also estimated from the data, the modified power prior (MPP) is needed. This method has been used primarily when a single historical trial is available. We have adapted the MPP for incorporating multiple historical control arms into a current clinical trial, each with a separate weight parameter. Three priors for the weights are considered: (1) independent, (2) dependent, and (3) robustified dependent. The latter is developed to account for the possibility of a conflict between the historical data and the current data. We analyze two real-life data sets and perform simulation studies to compare the performance of competing Bayesian methods that allow to incorporate historical control patients in the analysis of a current trial. The dependent power prior borrows more information from comparable historical studies and thereby can improve the statistical power. Robustifying the dependent power prior seems to protect against prior-data conflict.},
+year = {2019}
+}
+
+@article{Friel2008,
+    author = {Friel, N. and Pettitt, A. N.},
+    title = {Marginal Likelihood Estimation via Power Posteriors},
+    journal = {Journal of the Royal Statistical Society Series B: Statistical Methodology},
+    volume = {70},
+    number = {3},
+    pages = {589-607},
+    year = {2008},
+    month = {04},
+    abstract = {Model choice plays an increasingly important role in statistics. From a Bayesian perspective a crucial goal is to compute the marginal likelihood of the data for a given model. However, this is typically a difficult task since it amounts to integrating over all model parameters. The aim of the paper is to illustrate how this may be achieved by using ideas from thermodynamic integration or path sampling. We show how the marginal likelihood can be computed via Markov chain Monte Carlo methods on modified posterior distributions for each model. This then allows Bayes factors or posterior model probabilities to be calculated. We show that this approach requires very little tuning and is straightforward to implement. The new method is illustrated in a variety of challenging statistical settings.},
+    issn = {1369-7412}
+}
+
+@article{Ye2022,
+title = {Normalized power prior Bayesian analysis},
+journal = {Journal of Statistical Planning and Inference},
+volume = {216},
+pages = {29-50},
+year = {2022},
+issn = {0378-3758},
+author = {Keying Ye and Zifei Han and Yuyan Duan and Tianyu Bai},
+keywords = {Bayesian analysis, Historical data, Joint power prior, Normalized power prior, Kullback–Leibler divergence},
+abstract = {The elicitation of power priors, based on the availability of historical data, is realized by raising the likelihood function of the historical data to a fractional power δ, which quantifies the degree of discounting of the historical information in making inference with the current data. When δ is not pre-specified and is treated as random, it can be estimated from the data using Bayesian updating paradigm. However, in the original form of the joint power prior Bayesian approach, certain positive constants before the likelihood of the historical data could be multiplied when different settings of sufficient statistics are employed. This would change the power priors with different constants, and hence the likelihood principle is violated. In this article, we investigate a normalized power prior approach which obeys the likelihood principle and is a modified form of the joint power prior. The optimality properties of the normalized power prior in the sense of minimizing the weighted Kullback–Leibler divergence are investigated. By examining the posteriors of several commonly used distributions, we show that the discrepancy between the historical and the current data can be well quantified by the power parameter under the normalized power prior setting. Efficient algorithms to compute the scale factor is also proposed. In addition, we illustrate the use of the normalized power prior Bayesian analysis with three data examples, and provide an implementation with an R package NPP.}
+}
+
+@article{Liang2013,
+    author = {Liang, Faming and Jin, Ick-Hoon},
+    title = {A Monte Carlo Metropolis-Hastings Algorithm for Sampling from Distributions with Intractable Normalizing Constants},
+    journal = {Neural Computation},
+    volume = {25},
+    number = {8},
+    pages = {2199-2234},
+    year = {2013},
+    month = {08},
+    abstract = {Simulating from distributions with intractable normalizing constants has been a long-standing problem in machine learning. In this letter, we propose a new algorithm, the Monte Carlo Metropolis-Hastings (MCMH) algorithm, for tackling this problem. The MCMH algorithm is a Monte Carlo version of the Metropolis-Hastings algorithm. It replaces the unknown normalizing constant ratio by a Monte Carlo estimate in simulations, while still converges, as shown in the letter, to the desired target distribution under mild conditions. The MCMH algorithm is illustrated with spatial autologistic models and exponential random graph models. Unlike other auxiliary variable Markov chain Monte Carlo (MCMC) algorithms, such as the Møller and exchange algorithms, the MCMH algorithm avoids the requirement for perfect sampling, and thus can be applied to many statistical models for which perfect sampling is not available or very expensive. The MCMH algorithm can also be applied to Bayesian inference for random effect models and missing data problems that involve simulations from a distribution with intractable integrals.},
+    issn = {0899-7667}
+}

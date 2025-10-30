@@ -363,6 +363,14 @@ display: none;
 </div>
 
 
+<style type="text/css">
+body {
+line-height: 1.5; 
+}
+p {
+text-indent: 2em;
+}
+</style>
 <div id="sec1" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Introduction</h1>
 <p>本文档旨在完善Bayesian统计在临床试验中应用时涉及的算法。本文档所考虑的先验仅包括混合先验和幂先验。在章节<a href="#sec2">2</a>中，本文档将简介混合先验及幂先验的统计学理论。在章节<a href="#sec3">3</a>中，本文档将基于SAP模板中的主要分析方法 (MMRM、ANCOVA、negative binomial regression、stratified CMH以及stratified Cox-PH regression)，给出相应的基于混合先验以及幂先验的Bayesian算法框架。在章节<a href="#sec4">4</a>中，本文档将基于不同场景下的模拟案例，就参数估计和假设检验，比较不同类型的先验下，频率学方法以及Bayesian方法的统计性能。</p>
@@ -374,19 +382,36 @@ display: none;
 <div id="混合先验" class="section level2" number="2.1">
 <h2><span class="header-section-number">2.1</span> 混合先验</h2>
 <p>混合先验将信息先验<span class="math inline">\(p_{hst}(\theta|D_{hst})\)</span>和给定先验<span class="math inline">\(\pi_{vag}(\theta)\)</span>按一定的权重混合，其中，<span class="math inline">\(\pi_{vag}(\theta)\)</span>通常取弱信息共轭先验（如对二分类终点，可取Jeffreys’ prior；对其他终点可取unit information prior）<span class="citation">(Kass and Wasserman 1995; Schmidli et al. 2014)</span>，
-<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).\]</span>
-若无法确定<span class="math inline">\(w\)</span>的值，可将<span class="math inline">\(w\)</span>也看作随机变量，此时将由分析数据自适应决定权重分配,
+<span class="math display">\[p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).\]</span></p>
+<p>若无法确定<span class="math inline">\(w\)</span>的值，可将<span class="math inline">\(w\)</span>也看作随机变量，此时将由分析数据自适应决定权重分配,
 <span class="math display">\[p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).\]</span></p>
 </div>
 <div id="幂先验" class="section level2" number="2.2">
 <h2><span class="header-section-number">2.2</span> 幂先验</h2>
 <p>幂先验的表达式如下：
 <span class="math display">\[p_{pp}(\theta|w) \propto L(\theta|D_{hst})^w\pi_0(\theta).\]</span>
-从表达式不难得出，当<span class="math inline">\(w=0\)</span>时，幂先验不借用历史数据<span class="math inline">\(D_{hst}\)</span>；当 <span class="math inline">\(w=1\)</span>时，幂先验完全借用历史数据<span class="math inline">\(D_{hst}\)</span>。</p>
+从表达式不难得出，当<span class="math inline">\(w=0\)</span>时，幂先验不借用历史数据<span class="math inline">\(D_{hst}\)</span>；当 <span class="math inline">\(w=1\)</span>时，幂先验完全借用历史数据<span class="math inline">\(D_{hst}\)</span>。幂先验的一个重要性质为当<span class="math inline">\(\pi_0(\theta)\)</span>为proper prior时，幂先验也是proper prior。</p>
 <p>同样地，若无法确定<span class="math inline">\(w\)</span>的值，幂先验也可将<span class="math inline">\(w\)</span>也看作随机变量，此时有
-<span class="math display">\[p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).\]</span>
-然而，与混合先验不同的是，若不对<span class="math inline">\(L(\theta|D_{hst})^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Robert 2007; Berry et al. 2010)</span>：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行如下标准化，
-<span class="math display">\[p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).\]</span></p>
+<span class="math display">\[p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).\]</span></p>
+<p>然而，与混合先验不同的是，若不对信息先验<span class="math inline">\(L(\theta|D_{hst})^w\pi_0(\theta)\)</span>标准化，该幂先验会违背Likelihood Principle <span class="citation">(Robert 2007; Berry et al. 2010)</span>：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将<span class="math inline">\(w\)</span>看作随机变量时，需要进行如下标准化，
+<span class="math display">\[p_{npp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).\]</span>
+经过标准化的幂先验又称为NPP (Normalized power prior) 或MPP (Modified power prior)<span class="citation">(Joseph G. Ibrahim et al. 2015; Banbeta et al. 2019)</span>。对于initial prior <span class="math inline">\(\pi_0(\theta)\)</span>的选择，从代码实施和后验的收敛角度考虑，建议<span class="math inline">\(\pi_0(\theta)\)</span>取proper prior。</p>
+<p>需要注意的是，NPP中的标准化项<span class="math inline">\(C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta\)</span>通常没有显式表达式，因此常使用积分近似，具体的算法主要包括以下几类：</p>
+<ul>
+<li>Laplace approximation</li>
+<li>Path sampling <span class="citation">(Friel and Pettitt 2008; Ye et al. 2022)</span></li>
+<li>Monte Carlo Metropolis-Hastings (MCMH) algorithm <span class="citation">(Liang and Jin 2013)</span></li>
+</ul>
+<p>下面主要介绍path sampling算法。<span class="citation">Friel and Pettitt (2008)</span> 在论文中给出的主要理论结果为</p>
+<p><span class="math display">\[\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,\]</span>
+其中<span class="math inline">\(p_{pp}(\theta|w^\ast)\propto L(\theta|D_{hst})^{w^\ast}\pi_0(\theta)\)</span>。因此，通过先在<span class="math inline">\([0, 1]\)</span>区间划分<span class="math inline">\(K\)</span>个网格，对于每一个网格端点<span class="math inline">\(w_k\)</span>，使用MCMC算法从<span class="math inline">\(p_{pp}(\theta|w_k)\)</span>分布对<span class="math inline">\(\theta\)</span>抽样，可以近似<span class="math inline">\(E_{p_{pp}(\theta|w_k)}[l(\theta|D_{hst})]\)</span>，最后基于网格和近似得到的期望可以近似计算<span class="math inline">\(\log C(w)\)</span>。具体算法如下 <span class="citation">(Ye et al. 2022)</span>：</p>
+<ul>
+<li>Step 0: Choose a set of <span class="math inline">\(K−1\)</span> different numbers as knots between 0 and 1, and another knot at 1, with <span class="math inline">\(K\)</span> sufficiently large. Sort them in ascending order <span class="math inline">\((w_1, . . . , w_{K−1}, 1)\)</span>. Let <span class="math inline">\(w_0 = 0\)</span>, <span class="math inline">\(\Delta_1 = w_1, \Delta_i = w_i−w_{i−1} (1 &lt; i ≤ K),\text{ and }\Delta_K = 1−w_{K−1}\)</span>. Choose <span class="math inline">\(M\)</span>, the number of MCMC samples in a run when sampling from <span class="math inline">\(p_{pp}(\theta|w)\)</span>. Initialize <span class="math inline">\(l = 1\)</span>.</li>
+<li>Step 1: Generate <span class="math inline">\(M\)</span> samples from <span class="math inline">\(p_{pp}(\theta|w_l)\)</span> using an appropriate MCMC algorithm. Denote the sample as <span class="math inline">\((\theta_l^{(1)},\theta_l^{(2)},\dots,\theta_l^{(M)})\)</span>.</li>
+<li>Step 2: Calculate <span class="math inline">\(h(w_l) = \sum^M_{j=1}l(\theta_l^{(j)}|D_{hst})/M\)</span>.</li>
+<li>Step 3: Calculate <span class="math inline">\(\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}\)</span> (the Trapezoidal rule).</li>
+<li>Step 4: Increase <span class="math inline">\(l\)</span> by 1. If <span class="math inline">\(l \leq n\)</span> then repeat Steps 1 to 3.</li>
+</ul>
 </div>
 </div>
 <div id="sec3" class="section level1" number="3">
@@ -406,7 +431,7 @@ display: none;
 <span class="math display">\[Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).\]</span>
 也即，
 <span class="math display">\[Y\sim N(X\beta, \sigma^2I),\]</span>
-其中<span class="math inline">\(X=[1, A, Z]\)</span>，<span class="math inline">\(\beta = [\alpha, \tau, \gamma^T]^T\)</span>。那么对于历史数据，取Jeffreys prior <span class="math inline">\(\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2\)</span>，有
+其中<span class="math inline">\(X=[1, A, Z]\)</span>，<span class="math inline">\(\beta = [\alpha, \tau, \gamma^T]^T\)</span>。对于混合先验的initial prior，取Jeffreys’ prior <span class="math inline">\(\pi_0(\beta,\sigma^2)\propto 1/\sigma^2\)</span>，有
 <span class="math display">\[\begin{equation*}
 \begin{aligned}
 p_{hst}(\theta|D_{hst}) &amp; \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\
@@ -415,15 +440,18 @@ p_{hst}(\theta|D_{hst}) &amp; \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\fr
 \end{equation*}\]</span>
 因此，混合先验为
 <span class="math display">\[p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\sigma^2).\]</span>
-对于<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)\)</span>的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot\)</span><span class="math inline">\(InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})\)</span>，形式上可解释为unit information prior。</p>
+对于<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)\)</span>的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如<span class="math inline">\(\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot\)</span><span class="math inline">\(InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})\)</span>。</p>
 <p>幂先验为 <span class="citation">(Joseph G. Ibrahim, Chen, and Sinha 2003)</span>
-<span class="math display">\[\begin{equation*}
-\begin{aligned}
-p_{pp}(\beta,\sigma^2|w)&amp;\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\ &amp;=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right).
-\end{aligned}
-\end{equation*}\]</span>
-注意到当<span class="math inline">\(w\leq p/n\)</span>时，幂先验可能为improper prior。
-##### 随机权重</p>
+<span class="math display">\[
+p_{pp}(\beta,\sigma^2|w)\propto (\sigma^2)^{-\frac{nw}{2}}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\pi_0(\theta)
+\]</span>
+若initial prior为Jeffreys’ prior，信息先验可表示为
+<span class="math display">\[p_{pp}(\beta,\sigma^2|w)=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right)\]</span>
+注意到当<span class="math inline">\(w\leq p/n\)</span>时，幂先验可能为improper prior。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
+<span class="math display">\[\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})\]</span></p>
+</div>
+<div id="随机权重" class="section level5" number="3.1.1.2.2">
+<h5><span class="header-section-number">3.1.1.2.2</span> 随机权重</h5>
 </div>
 </div>
 </div>
@@ -444,143 +472,6 @@ p_{pp}(\beta,\sigma^2|w)&amp;\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\fr
 <div id="ancova模型-1" class="section level4" number="4.1.1.2">
 <h4><span class="header-section-number">4.1.1.2</span> ANCOVA模型</h4>
 <p>以下为ANCOVA</p>
-<pre class="r"><code>library(rstan)</code></pre>
-<pre><code>## Loading required package: StanHeaders</code></pre>
-<pre><code>## 
-## rstan version 2.32.7 (Stan version 2.32.2)</code></pre>
-<pre><code>## For execution on a local, multicore CPU with excess RAM we recommend calling
-## options(mc.cores = parallel::detectCores()).
-## To avoid recompilation of unchanged Stan programs, we recommend calling
-## rstan_options(auto_write = TRUE)
-## For within-chain threading using `reduce_sum()` or `map_rect()` Stan functions,
-## change `threads_per_chain` option:
-## rstan_options(threads_per_chain = 1)</code></pre>
-<pre><code>## Do not specify &#39;-march=native&#39; in &#39;LOCAL_CPPFLAGS&#39; or a Makevars file</code></pre>
-<pre class="r"><code>rstan_options(auto_write = TRUE)
-options(mc.cores = min(parallel::detectCores()-1, 8))
-
-# --- Helper: build design matrices ---
-mk_design &lt;- function(df, formula) {
-  mm &lt;- model.matrix(formula, df)
-  Y &lt;- model.response(model.frame(formula, df))
-  list(Y = as.numeric(Y), X = mm, cols = colnames(mm))
-}
-
-# --- Derive Normal–Inverse-Gamma prior from historical data ---
-nig_from_history &lt;- function(formula, df) {
-  fit &lt;- lm(formula, df)
-  beta &lt;- coef(fit)
-  RSS &lt;- sum(residuals(fit)^2)
-  Sigma &lt;- vcov(fit)
-  L_Sigma &lt;- t(chol(Sigma))
-
-  # Scaled by power a0 for power prior
-  a &lt;- fit$df.residual/2
-  b &lt;- RSS/2
-
-  list(beta = beta, L_Sigma = L_Sigma, RSS = RSS, a = a, b = b)
-}
-
-# --- Construct data list for Stan ---
-build_ancova_data &lt;- function(df_cur, df_hst, formula,
-                              w_fixed = 0.5, estimate_w = FALSE,
-                              beta_vag = NULL, scale_vag = NULL,
-                              a_vag = NULL, b_vag = NULL) {
-  #prior_type &lt;- match.arg(prior_type)
-  des_cur &lt;- mk_design(df_cur, formula)
-
-  # historical informative prior (scaled by a0)
-  hist_info_mp &lt;- nig_from_history(formula, df_hst)
-  #hist_info_a0 &lt;- nig_from_history(des_hist$X, des_hist$y, a0 = a0_power)
-  
-  # vague prior
-  p &lt;- ncol(des_cur$X)
-  if (is.null(beta_vag)) {
-    beta_vag &lt;- hist_info_mp$beta
-  }
-  if (is.null(scale_vag)) {
-    L_Sigma_vag &lt;- hist_info_mp$L_Sigma
-  } else {
-    L_Sigma_vag &lt;- t(chol(scale_vag))
-  }
-  if (is.null(a_vag)) {
-    a_vag &lt;- 1/2
-  }
-  if (is.null(b_vag)) {
-    b_vag &lt;- 1/2*hist_info_mp$RSS
-  }
-  
-  # ll0_hat = log-likelihood of historical data at MLE (for CPP normalization)
-  #ll0_hat &lt;- as.numeric(logLik(lm(des_hst$y ~ des_hst$X - 1)))
-
-  list(
-    n = nrow(des_cur$X),
-    p = p,
-    Y = des_cur$Y,
-    X = des_cur$X,
-    beta_hst = hist_info_mp$beta,
-    L_Sigma_hst = hist_info_mp$L_Sigma,
-    a_hst = hist_info_mp$a,
-    b_hst = hist_info_mp$b,
-    beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag,
-    a_vag = a_vag,
-    b_vag = b_vag,
-    #prior_type = ifelse(prior_type==&quot;mixture&quot;, 1L, 2L),
-    w_fixed = w_fixed,
-    #a0_fixed = a0_fixed,
-    estimate_w = as.integer(estimate_w)
-    #estimate_a0 = as.integer(estimate_a0),
-    #n_hst = nrow(des_hst$X),
-    #p_hst = ncol(des_hst$X),
-    #Y_hst = des_hst$Y,
-    #X_hst = des_hst$X
-    #ll0_hat = ll0_hat
-  )
-}
-
-# --- Run Stan model ---
-run_ancova_conjugate &lt;- function(df_cur, df_hst, formula,
-                                 #prior_type = c(&quot;mixture&quot;,&quot;power&quot;),
-                                 w_fixed = 0.5, estimate_w = FALSE,
-                                 #a0_fixed = 0.5, estimate_a0 = FALSE,
-                                 #a0_power = 0.5,
-                                 iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
-  # dat &lt;- build_ancova_data(df_cur, df_hst, formula,
-  #                          prior_type, w_fixed, estimate_w,
-  #                          a0_fixed, estimate_a0,
-  #                          a0_power = a0_power)
-  dat &lt;- build_ancova_data(df_cur, df_hst, formula,
-                           w_fixed, estimate_w)
-  
-
-  stan_file &lt;- &quot;ancova_conj_mp.stan&quot;
-  fit &lt;- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
-  return(fit)
-}
-
-# --- Extract treatment effect posterior ---
-extract_tau &lt;- function(fit_obj, tau_col) {
-  sm &lt;- rstan::summary(fit_obj, pars = &quot;beta&quot;)$summary
-  idx &lt;- match(tau_col, fit_obj$dat$cols)
-  sm[idx, c(&quot;mean&quot;,&quot;2.5%&quot;,&quot;50%&quot;,&quot;97.5%&quot;,&quot;n_eff&quot;,&quot;Rhat&quot;)]
-}
-
-# --- Simulation ---
-n &lt;- 500
-n_hst &lt;- 300
-n_cur &lt;- n - n_hst
-alpha &lt;- 3
-tau &lt;- -5
-gamma &lt;- 0.9
-treatment &lt;- rbinom(n, 1, 0.5)
-score_baseline &lt;- sample(20:55, n, replace = T)
-e &lt;- rnorm(n, sd = 3)
-score &lt;- round(alpha + tau*treatment + gamma*score_baseline + e)
-data &lt;- data.frame(score_baseline, treatment, score)
-data_hst &lt;- data[1:n_hst,]
-data_cur &lt;- data[(n_hst+1):n,]
-#fit_conj_mp &lt;- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)</code></pre>
 </div>
 </div>
 </div>
@@ -588,8 +479,14 @@ data_cur &lt;- data[(n_hst+1):n,]
 <div id="sec5" class="section level1 unnumbered">
 <h1>Reference</h1>
 <div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-Banbeta2019" class="csl-entry">
+Banbeta, Akalu, Joost van Rosmalen, David Dejardin, and Emmanuel Lesaffre. 2019. <span>“Modified Power Prior with Multiple Historical Trials for Binary Endpoints.”</span> <em>Statistics in Medicine</em> 38 (7): 1147–69.
+</div>
 <div id="ref-Berry2010" class="csl-entry">
 Berry, Scott M., Bradley P. Carlin, J. Jack Lee, and Peter Muller. 2010. <em>Bayesian Adaptive Methods for Clinical Trials</em>. 1st ed. Boca Raton, FL: Chapman; Hall/CRC.
+</div>
+<div id="ref-Friel2008" class="csl-entry">
+Friel, N., and A. N. Pettitt. 2008. <span>“Marginal Likelihood Estimation via Power Posteriors.”</span> <em>Journal of the Royal Statistical Society Series B: Statistical Methodology</em> 70 (3): 589–607.
 </div>
 <div id="ref-Ibrahim2015" class="csl-entry">
 Ibrahim, Joseph G., Ming-Hui Chen, Yeongjin Gwon, and Fang Chen. 2015. <span>“The Power Prior: Theory and Applications.”</span> <em>Statistics in Medicine</em> 34 (28): 3724–49.
@@ -600,6 +497,9 @@ Ibrahim, Joseph G, Ming-Hui Chen, and Debajyoti Sinha. 2003. <span>“On Optimal
 <div id="ref-Kass1995" class="csl-entry">
 Kass, Robert E., and Larry Wasserman. 1995. <span>“A Reference Bayesian Test for Nested Hypotheses and Its Relationship to the Schwarz Criterion.”</span> <em>Journal of the American Statistical Association</em> 90 (431): 928–34.
 </div>
+<div id="ref-Liang2013" class="csl-entry">
+Liang, Faming, and Ick-Hoon Jin. 2013. <span>“A Monte Carlo Metropolis-Hastings Algorithm for Sampling from Distributions with Intractable Normalizing Constants.”</span> <em>Neural Computation</em> 25 (8): 2199–2234.
+</div>
 <div id="ref-Robert2007" class="csl-entry">
 Robert, Christian P. 2007. <em>The Bayesian Choice: From Decision-Theoretic Foundations to Computational Implementation</em>. 2nd ed. New York: Springer.
 </div>
@@ -608,6 +508,9 @@ Schmidli, Heinz, Sandro Gsteiger, Satrajit Roychoudhury, Anthony O’Hagan, Davi
 </div>
 <div id="ref-Yang2023" class="csl-entry">
 Yang, Peng, Yuansong Zhao, Lei Nie, Jonathon Vallejo, and Ying Yuan. 2023. <span>“SAM: Self-Adapting Mixture Prior to Dynamically Borrow Information from Historical Data in Clinical Trials.”</span> <em>Biometrics</em> 79 (4): 2857–68.
+</div>
+<div id="ref-Ye2022" class="csl-entry">
+Ye, Keying, Zifei Han, Yuyan Duan, and Tianyu Bai. 2022. <span>“Normalized Power Prior Bayesian Analysis.”</span> <em>Journal of Statistical Planning and Inference</em> 216: 29–50.
 </div>
 </div>
 </div>
