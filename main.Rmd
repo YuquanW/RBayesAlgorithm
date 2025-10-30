@@ -4,6 +4,15 @@ output: bookdown::html_document2
 bibliography: reference.bib
 date: "2025-10-22"
 ---
+<style type="text/css">
+  body {
+    line-height: 1.5; /* Sets line height for the entire body */
+  }
+  p {
+    text-indent: 2em;
+  }
+</style>
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -23,6 +32,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 混合先验将信息先验$p_{hst}(\theta|D_{hst})$和给定先验$\pi_{vag}(\theta)$按一定的权重混合，其中，$\pi_{vag}(\theta)$通常取弱信息共轭先验（如对二分类终点，可取Jeffreys' prior；对其他终点可取unit information prior）[@Kass1995; @Schmidli2014]，
 $$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).$$
+
 若无法确定$w$的值，可将$w$也看作随机变量，此时将由分析数据自适应决定权重分配,
 $$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).$$
 
@@ -30,12 +40,31 @@ $$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\r
 
 幂先验的表达式如下：
 $$p_{pp}(\theta|w) \propto L(\theta|D_{hst})^w\pi_0(\theta).$$
-从表达式不难得出，当$w=0$时，幂先验不借用历史数据$D_{hst}$；当 $w=1$时，幂先验完全借用历史数据$D_{hst}$。
+从表达式不难得出，当$w=0$时，幂先验不借用历史数据$D_{hst}$；当 $w=1$时，幂先验完全借用历史数据$D_{hst}$。幂先验的一个重要性质为当$\pi_0(\theta)$为proper prior时，幂先验也是proper prior。
 
 同样地，若无法确定$w$的值，幂先验也可将$w$也看作随机变量，此时有
 $$p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).$$
-然而，与混合先验不同的是，若不对$L(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Robert2007; @Berry2010]：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行如下标准化，
-$$p_{pp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).$$
+
+然而，与混合先验不同的是，若不对信息先验$L(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Robert2007; @Berry2010]：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行如下标准化，
+$$p_{npp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).$$
+经过标准化的幂先验又称为NPP (Normalized power prior) 或MPP (Modified power prior)[@Ibrahim2015; @Banbeta2019]。对于initial prior $\pi_0(\theta)$的选择，从代码实施和后验的收敛角度考虑，建议$\pi_0(\theta)$取proper prior。
+
+需要注意的是，NPP中的标准化项$C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta$通常没有显式表达式，因此常使用积分近似，具体的算法主要包括以下几类：
+
+* Laplace approximation
+* Path sampling [@Friel2008; @Ye2022]
+* Monte Carlo Metropolis-Hastings (MCMH) algorithm [@Liang2013]
+
+下面主要介绍path sampling算法。@Friel2008 在论文中给出的主要理论结果为
+
+$$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
+其中$p_{pp}(\theta|w^\ast)\propto L(\theta|D_{hst})^{w^\ast}\pi_0(\theta)$。因此，通过先在$[0, 1]$区间划分$K$个网格，对于每一个网格端点$w_k$，使用MCMC算法从$p_{pp}(\theta|w_k)$分布对$\theta$抽样，可以近似$E_{p_{pp}(\theta|w_k)}[l(\theta|D_{hst})]$，最后基于网格和近似得到的期望可以近似计算$\log C(w)$。具体算法如下 [@Ye2022]：
+
+* Step 0: Choose a set of $K−1$ different numbers as knots between 0 and 1, and another knot at 1, with $K$ sufficiently large. Sort them in ascending order $(w_1, . . . , w_{K−1}, 1)$. Let $w_0 = 0$, $\Delta_1 = w_1, \Delta_i = w_i−w_{i−1} (1 < i ≤ K),\text{ and }\Delta_K = 1−w_{K−1}$. Choose $M$, the number of MCMC samples in a run when sampling from $p_{pp}(\theta|w)$. Initialize $l = 1$.
+* Step 1: Generate $M$ samples from $p_{pp}(\theta|w_l)$ using an appropriate MCMC algorithm. Denote the sample as $(\theta_l^{(1)},\theta_l^{(2)},\dots,\theta_l^{(M)})$.
+* Step 2: Calculate $h(w_l) = \sum^M_{j=1}l(\theta_l^{(j)}|D_{hst})/M$.
+* Step 3: Calculate $\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}$ (the Trapezoidal rule).
+* Step 4: Increase $l$ by 1. If $l \leq n$ then repeat Steps 1 to 3.
 
 # Application and Case Study {#sec3}
 
@@ -53,7 +82,7 @@ ANCOVA的模型假设如下：
 $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).$$
 也即，
 $$Y\sim N(X\beta, \sigma^2I),$$
-其中$X=[1, A, Z]$，$\beta = [\alpha, \tau, \gamma^T]^T$。那么对于历史数据，取Jeffreys prior $\pi_{hst}(\beta,\sigma^2)\propto 1/\sigma^2$，有
+其中$X=[1, A, Z]$，$\beta = [\alpha, \tau, \gamma^T]^T$。对于混合先验的initial prior，取Jeffreys' prior $\pi_0(\beta,\sigma^2)\propto 1/\sigma^2$，有
 \begin{equation*}
 \begin{aligned}
 p_{hst}(\theta|D_{hst}) & \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\
@@ -66,12 +95,13 @@ $$p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\si
 
 
 幂先验为 [@Ibrahim2003]
-\begin{equation*}
-\begin{aligned}
-p_{pp}(\beta,\sigma^2|w)&\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\\ &=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right).
-\end{aligned}
-\end{equation*}
-注意到当$w\leq p/n$时，幂先验可能为improper prior。
+$$
+p_{pp}(\beta,\sigma^2|w)\propto (\sigma^2)^{-\frac{nw}{2}}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\pi_0(\theta)
+$$
+若initial prior为Jeffreys' prior，信息先验可表示为
+$$p_{pp}(\beta,\sigma^2|w)=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst})^{-1}\right)InvGamma\left(\frac{nw-p}{2},\frac{wRSS_{hst}}{2}\right)$$
+注意到当$w\leq p/n$时，幂先验可能为improper prior。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
+$$\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$$
 
 ##### 随机权重
 
@@ -89,7 +119,7 @@ p_{pp}(\beta,\sigma^2|w)&\propto (\sigma^2)^{-\frac{nw}{2}-1}\exp\left\{-\frac{1
 
 以下为ANCOVA
 
-```{r}
+```{r include=FALSE}
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = min(parallel::detectCores()-1, 8))
@@ -120,6 +150,7 @@ nig_from_history <- function(X, Y) {
 
 # --- Construct data list for Stan ---
 build_ancova_data <- function(df_cur, df_hst, formula,
+                              prior_type = c("mixture","power"),
                               w_fixed = 0.5, estimate_w = FALSE,
                               beta_vag = NULL, scale_vag = NULL,
                               a_vag = NULL, b_vag = NULL) {
@@ -129,7 +160,6 @@ build_ancova_data <- function(df_cur, df_hst, formula,
 
   # historical informative prior (scaled by a0)
   hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
-  #hist_info_a0 <- nig_from_history(des_hist$X, des_hist$y, a0 = a0_power)
   
   # vague prior
   if (is.null(beta_vag)) {
@@ -163,35 +193,27 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     L_Sigma_vag = L_Sigma_vag,
     a_vag = a_vag,
     b_vag = b_vag,
-    #prior_type = ifelse(prior_type=="mixture", 1L, 2L),
+    prior_type = ifelse(prior_type=="mixture", 1L, 2L),
     w_fixed = w_fixed,
-    #a0_fixed = a0_fixed,
-    estimate_w = as.integer(estimate_w)
-    #estimate_a0 = as.integer(estimate_a0),
-    #n_hst = nrow(des_hst$X),
-    #p_hst = ncol(des_hst$X),
-    #Y_hst = des_hst$Y,
-    #X_hst = des_hst$X
-    #ll0_hat = ll0_hat
+    a0_fixed = a0_fixed,
+    estimate_w = as.integer(estimate_w),
+    n_hst = nrow(des_hst$X),
+    p_hst = ncol(des_hst$X),
+    Y_hst = des_hst$Y,
+    X_hst = des_hst$X
   )
 }
 
 # --- Run Stan model ---
 run_ancova_conjugate <- function(df_cur, df_hst, formula,
-                                 #prior_type = c("mixture","power"),
+                                 prior_type = c("mixture","power"),
                                  w_fixed = 0.5, estimate_w = FALSE,
-                                 #a0_fixed = 0.5, estimate_a0 = FALSE,
-                                 #a0_power = 0.5,
                                  iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
-  # dat <- build_ancova_data(df_cur, df_hst, formula,
-  #                          prior_type, w_fixed, estimate_w,
-  #                          a0_fixed, estimate_a0,
-  #                          a0_power = a0_power)
   dat <- build_ancova_data(df_cur, df_hst, formula,
+                           prior_type, 
                            w_fixed, estimate_w)
-  
 
-  stan_file <- "ancova_conj_mp.stan"
+  stan_file <- ifelse(prior_type == "mixture", "ancova_conj_mp.stan", "ancova_conj_pp.stan")
   fit <- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
   return(fit)
 }
@@ -217,7 +239,7 @@ score <- round(alpha + tau*treatment + gamma*score_baseline + e)
 data <- data.frame(score_baseline, treatment, score)
 data_hst <- data[1:n_hst,]
 data_cur <- data[(n_hst+1):n,]
-fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
+#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
 
 ```
 
