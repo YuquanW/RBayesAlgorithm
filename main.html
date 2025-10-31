@@ -415,11 +415,11 @@ text-indent: 2em;
 <li>Step 3: Calculate <span class="math inline">\(\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}\)</span> (the Trapezoidal rule).</li>
 <li>Step 4: Increase <span class="math inline">\(l\)</span> by 1. If <span class="math inline">\(l \leq n\)</span> then repeat Steps 1 to 3.</li>
 </ul>
-<p>相较于MCMH算法，由于每次从MH算法的proposal distribution中抽样时都要进行一次额外的MCMC抽样计算</p>
+<p>相较于MCMH算法，path sampling在<code>stan</code>中易于实现。此外，MCMH算法在每次从proposal distribution抽样时，都要再嵌套一层MCMC抽样来计算acceptance ratio；而path sampling算法可以独立于MH算法给出所有的<span class="math inline">\(\log C(w_l)\)</span>，因此计算效率可能高于MCMH算法。综合考虑，尽管MCMH算法可能更加精准和稳定，本文档优先使用path sampling实现NPP方法。如有必要（例如path sampling收敛不稳定等），使用<code>nimble</code>实现MCMH算法。</p>
 </div>
 </div>
 <div id="sec3" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> Application and Case Study</h1>
+<h1><span class="header-section-number">3</span> Application</h1>
 <div id="非肿瘤项目" class="section level2" number="3.1">
 <h2><span class="header-section-number">3.1</span> 非肿瘤项目</h2>
 <div id="连续变量终点" class="section level3" number="3.1.1">

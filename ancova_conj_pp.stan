@@ -44,7 +44,7 @@ model {
 
   // Normalized (conditional) power prior contribution
   if (n_hst - p > 0) {
-    target += w * normal_lpdf(Y_hst | X_hst * beta, sigma);
+    target += w_eff * normal_lpdf(Y_hst | X_hst * beta, sigma);
   }
 
   // Current likelihood

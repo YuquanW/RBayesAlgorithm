@@ -70,9 +70,9 @@ $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 * Step 3: Calculate $\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}$ (the Trapezoidal rule).
 * Step 4: Increase $l$ by 1. If $l \leq n$ then repeat Steps 1 to 3.
 
-相较于MCMH算法，由于每次从MH算法的proposal distribution中抽样时都要进行一次额外的MCMC抽样计算 
+相较于MCMH算法，path sampling在`stan`中易于实现。此外，MCMH算法在每次从proposal distribution抽样时，都要再嵌套一层MCMC抽样来计算acceptance ratio；而path sampling算法可以独立于MH算法给出所有的$\log C(w_l)$，因此计算效率可能高于MCMH算法。综合考虑，尽管MCMH算法可能更加精准和稳定，本文档优先使用path sampling实现NPP方法。如有必要（例如path sampling收敛不稳定等），使用`nimble`实现MCMH算法。
 
-# Application and Case Study {#sec3}
+# Application {#sec3}
 
 ## 非肿瘤项目
 
@@ -81,8 +81,6 @@ $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 #### MMRM模型
 
 #### ANCOVA模型
-
-##### 固定权重
 
 ANCOVA的模型假设如下：
 $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).$$
@@ -109,8 +107,6 @@ $$p_{pp}(\beta,\sigma^2|w)=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst
 注意到当$w\leq p/n$时，幂先验可能为improper prior。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$$
 
-##### 随机权重
-
 ## 肿瘤项目
 
 # Simulation Study {#sec4}
@@ -119,11 +115,15 @@ $$\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_
 
 ### 连续变量终点
 
+对于连续变量终点，为简化问题，我们设定如下数据生成过程：
+
+$$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D_{hst}))A_{i}+\gamma Y_{i}^{baseline}+\varepsilon_{i},\\
+\varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
+
+
 #### MMRM模型
 
 #### ANCOVA模型
-
-以下为ANCOVA
 
 ```{r include=FALSE}
 library(rstan)
@@ -132,9 +132,9 @@ options(mc.cores = min(parallel::detectCores()-1, 8))
 
 # --- Helper: build design matrices ---
 mk_design <- function(df, formula) {
-  mm <- model.matrix(formula, df)
+  X <- model.matrix(formula, df)
   Y <- model.response(model.frame(formula, df))
-  list(Y = as.numeric(Y), X = mm, cols = colnames(mm))
+  list(Y = as.numeric(Y), X = X, cols = colnames(X))
 }
 
 # --- Derive Normal–Inverse-Gamma prior from historical data ---
@@ -160,12 +160,14 @@ build_ancova_data <- function(df_cur, df_hst, formula,
                               w_fixed = 0.5, estimate_w = FALSE,
                               beta_vag = NULL, scale_vag = NULL,
                               a_vag = NULL, b_vag = NULL) {
-  #prior_type <- match.arg(prior_type)
+  prior_type <- match.arg(prior_type)
   des_cur <- mk_design(df_cur, formula)
   des_hst <- mk_design(df_hst, formula)
 
   # historical informative prior (scaled by a0)
   hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
+  
+  
   
   # vague prior
   if (is.null(beta_vag)) {
@@ -187,6 +189,7 @@ build_ancova_data <- function(df_cur, df_hst, formula,
   #ll0_hat <- as.numeric(logLik(lm(des_hst$y ~ des_hst$X - 1)))
 
   list(
+    cols = des_cur$cols,
     n = nrow(des_cur$X),
     p = ncol(des_cur$X),
     Y = des_cur$Y,
@@ -199,10 +202,8 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     L_Sigma_vag = L_Sigma_vag,
     a_vag = a_vag,
     b_vag = b_vag,
-    prior_type = ifelse(prior_type=="mixture", 1L, 2L),
     w_fixed = w_fixed,
-    a0_fixed = a0_fixed,
-    estimate_w = as.integer(estimate_w),
+    estimate_w = estimate_w,
     n_hst = nrow(des_hst$X),
     p_hst = ncol(des_hst$X),
     Y_hst = des_hst$Y,
@@ -212,41 +213,78 @@ build_ancova_data <- function(df_cur, df_hst, formula,
 
 # --- Run Stan model ---
 run_ancova_conjugate <- function(df_cur, df_hst, formula,
-                                 prior_type = c("mixture","power"),
+                                 prior_type = c("mixture", "power"),
                                  w_fixed = 0.5, estimate_w = FALSE,
                                  iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
+  prior_type <- match.arg(prior_type)
   dat <- build_ancova_data(df_cur, df_hst, formula,
                            prior_type, 
                            w_fixed, estimate_w)
 
   stan_file <- ifelse(prior_type == "mixture", "ancova_conj_mp.stan", "ancova_conj_pp.stan")
   fit <- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
-  return(fit)
+  return(list(fit = fit, dat = dat))
 }
 
 # --- Extract treatment effect posterior ---
-extract_tau <- function(fit_obj, tau_col) {
-  sm <- rstan::summary(fit_obj, pars = "beta")$summary
-  idx <- match(tau_col, fit_obj$dat$cols)
-  sm[idx, c("mean","2.5%","50%","97.5%","n_eff","Rhat")]
+extract_pars <- function(fit_obj, eff_cols) {
+  sm <- rstan::summary(fit_obj$fit, pars = "beta")$summary
+  idx <- match(eff_cols, fit_obj$dat$cols)
+  sm[idx, c("mean", "2.5%", "50%", "97.5%", "n_eff", "Rhat")]
 }
+```
 
-# --- Simulation ---
-n <- 500
-n_hst <- 300
+```{r}
+library(nimble)
+dancova_mp_hist <- nimbleFunction(
+  run = function(x, mu, sigma2,
+                 log = 0) {
+    n <- length(x)
+    sigma <- sqrt(sigma2)
+    logProb <- dmnorm_chol(x, mu, sigma*diag(1, n), prec_param = FALSE, log = 1) -
+      log(sigma2)
+    if (log) return(logProb) else return(exp(logProb))
+    returnType(double(0))
+})
+
+mpCode <- nimbleCode({
+  if (estimate_w == 1) {
+    w ~ dunif(0, 1)
+  } else {
+    w <- w_fixed
+  }
+  z ~ dbern(w)
+  if (z == 1) {
+    y0 ~ dancova_mp_hist(mu, sigma2)
+    mu = X0%*%beta
+  } else {
+    
+  }
+})
+```
+
+
+``` {r}
+# --- Example run ---
+n <- 300
+n_hst <- 200
 n_cur <- n - n_hst
-alpha <- 3
+hst <- c(rep(1, n_hst), rep(0, n_cur))
+alpha <- 0.5
 tau <- -5
-gamma <- 0.9
+delta <- 0
+gamma <- 0.01
 treatment <- rbinom(n, 1, 0.5)
-score_baseline <- sample(20:55, n, replace = T)
-e <- rnorm(n, sd = 3)
-score <- round(alpha + tau*treatment + gamma*score_baseline + e)
-data <- data.frame(score_baseline, treatment, score)
-data_hst <- data[1:n_hst,]
-data_cur <- data[(n_hst+1):n,]
-#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, score ~ score_baseline + treatment, chains = 4)
-
+hba1c_baseline <- rnorm(n, 45, 2)
+e <- rnorm(n, sd = 2)
+hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
+data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
+data_hst <- subset(data, hst == 1)
+data_cur <- subset(data, hst == 0)
+fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "mixture", chains = 4)
+fit_conj_pp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "power", estimate_w = 0, chains = 4)
+extract_pars(fit_conj_pp, "treatment")
+lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_hst)
 ```
 
 
