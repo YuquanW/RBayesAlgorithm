@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 混合先验将信息先验$p_{hst}(\theta|D_{hst})$和给定先验$\pi_{vag}(\theta)$按一定的权重混合，其中，$\pi_{vag}(\theta)$通常取弱信息共轭先验（如对二分类终点，可取Jeffreys' prior；对其他终点可取unit information prior）[@Kass1995; @Schmidli2014]，
 $$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).$$
 
-若无法确定$w$的值，可将$w$也看作随机变量，此时将由分析数据自适应决定权重分配,
+若无法确定$w$的值，可将$w$也看作随机变量，此时将由数据自适应决定权重分配，然而，将$w$看作随机变量并不等同于dynamically borrowing [@Yang2023]，
 $$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).$$
 
 ## 幂先验
@@ -95,6 +95,7 @@ p_{hst}(\theta|D_{hst}) & \propto (\sigma^2)^{-\frac{n}{2}-1}\exp\left\{-\frac{1
 \end{equation*}
 因此，混合先验为
 $$p_{mp}(\beta,\sigma^2|w)\sim wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\beta,\sigma^2).$$
+
 对于$\pi_{vag}(\beta,\sigma^2)$的选取，由于涉及联合先验，此处可选择弱信息共轭先验，例如$\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})\cdot$$InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$。
 
 
@@ -234,33 +235,158 @@ extract_pars <- function(fit_obj, eff_cols) {
 }
 ```
 
-```{r}
-library(nimble)
-dancova_mp_hist <- nimbleFunction(
-  run = function(x, mu, sigma2,
-                 log = 0) {
-    n <- length(x)
-    sigma <- sqrt(sigma2)
-    logProb <- dmnorm_chol(x, mu, sigma*diag(1, n), prec_param = FALSE, log = 1) -
-      log(sigma2)
-    if (log) return(logProb) else return(exp(logProb))
-    returnType(double(0))
-})
-
-mpCode <- nimbleCode({
-  if (estimate_w == 1) {
-    w ~ dunif(0, 1)
-  } else {
-    w <- w_fixed
-  }
-  z ~ dbern(w)
-  if (z == 1) {
-    y0 ~ dancova_mp_hist(mu, sigma2)
-    mu = X0%*%beta
-  } else {
-    
-  }
-})
+```{r include = FALSE}
+# library(nimble)
+# mpCode <- nimbleCode({
+#   if (estimate_w) {
+#     w ~ dunif(0, 1)
+#   } else {
+#     w <- w_fixed
+#   }
+#   z ~ dbern(w)
+#   
+#   ## Historical prior
+#   betah[1:p] ~ dmnorm(beta0[1:p], cov = Cov_betah[1:p, 1:p])#dmnorm(beta0[1:p], cov = Cov_betah[1:p, 1:p])
+#   Cov_betah[1:p, 1:p] <- sigma2h*Sigma0[1:p, 1:p]
+#   #sigma2h ~ dinvgamma(ah, bh)
+#   #ah <- (n-p)/2
+#   #bh <- RSS/2
+#   
+#   ## Vague prior  
+#   betav[1:p] ~ dmnorm(beta1[1:p], cov = Cov_betav[1:p, 1:p])#dmnorm(beta0[1:p], cov = Cov_beta[1:p, 1:p])
+#   Cov_betav[1:p, 1:p] <- n*sigma2v*Sigmav[1:p, 1:p]
+#   #sigma2v ~ dinvgamma(a0, b0)
+#     
+#   beta[1:p] <- (z == 1)*betah[1:p] + (z == 0)*betav[1:p]
+#   sigma2 <- (z == 1)*sigma2h + (z == 0)*sigma2v
+#   y[1:n] ~ dmnorm(mu[1:n], cov = Cov_y[1:n, 1:n])
+#   mu[1:n] <- X[1:n, 1:p] %*% beta[1:p]
+#   Cov_y[1:n, 1:n] <- sigma2*diag(n)
+# })
+# 
+# mk_design <- function(df, formula) {
+#   X <- model.matrix(formula, df)
+#   y <- model.response(model.frame(formula, df))
+#   list(y = as.numeric(y), X = X, cols = colnames(X))
+# }
+# 
+# build_nimble_consts <- function(df_cur, df_hst, formula, 
+#                                w_fixed = 0.5, estimate_w = FALSE) {
+#   des_cur <- mk_design(df_cur, formula)
+#   des_hst <- mk_design(df_hst, formula)
+#   if (estimate_w) {
+#     list(n = nrow(des_cur$X),
+#          n0 = nrow(des_hst$X),
+#          p = ncol(des_cur$X),
+#          estimate_w = estimate_w)
+#   } else {
+#     list(n = nrow(des_cur$X),
+#          n0 = nrow(des_hst$X),
+#          p = ncol(des_cur$X),
+#          w_fixed = w_fixed,
+#          estimate_w = estimate_w)
+#   }
+# }
+# 
+# build_nimble_data <- function(df_cur, df_hst, formula,
+#                               beta0 = NULL, Sigma0 = NULL, a0 = NULL, b0 = NULL) {
+#   des_cur <- mk_design(df_cur, formula)
+#   des_hst <- mk_design(df_hst, formula)
+#   fit_cur <- lm(formula, df_cur)
+#   fit_hst <- lm(formula, df_hst)
+#   
+#   if (is.null(beta0)) {
+#     beta0 <- coef(fit_hst)
+#   }
+#   if (is.null(Sigma0)) {
+#     Sigma0 <- solve(crossprod(des_hst$X))
+#   } 
+#   if (is.null(a0)) {
+#     a0 <- 1/2
+#   }
+#   if (is.null(b0)) {
+#     b0 <- 1/2*sum(fit_hst$residuals^2)
+#   }
+#   
+#   list(
+#     #n = nrow(des_cur$X),
+#     y = des_cur$y,
+#     X = des_cur$X,
+#     #n0 = nrow(des_hst$X),
+#     y0 = des_hst$y,
+#     X0 = des_hst$X,
+#     beta0 = beta0,
+#     beta1 = coef(fit_cur),
+#     Sigma0 = Sigma0,
+#     Sigmav = solve(crossprod(des_cur$X)),
+#     sigma2h = sigma(fit_hst)^2,
+#     sigma2v = sigma(fit_cur)^2,
+#     RSS = 2*b0,
+#     a0 = a0,
+#     b0 = b0
+#   )
+# }
+# build_nimble_inits <- function(df_cur, formula, estimate_w = FALSE) {
+#   des_cur <- mk_design(df_cur, formula)
+#   fit_cur <- lm(formula, df_cur)
+#   if (estimate_w) {
+#     list(#betah = coef(fit_cur),
+#          lsigma2 = log(sigma(fit_cur)^2),
+#          #sigma2h = sigma(fit_cur)^2,
+#          #sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
+#          z = 0,
+#          w = 0.5)
+#   } else {
+#     list(#betah = coef(fit_cur),
+#          lsigma2 = log(sigma(fit_cur)^2),
+#          #sigma2h = sigma(fit_cur)^2,
+#          #sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
+#          z = 0)
+#   }
+# }
+# 
+# 
+# # --- Example run ---
+# n <- 300
+# n_hst <- 200
+# n_cur <- n - n_hst
+# hst <- c(rep(1, n_hst), rep(0, n_cur))
+# alpha <- 0.5
+# tau <- -5
+# delta <- 10
+# gamma <- 0.01
+# treatment <- rbinom(n, 1, 0.5)
+# hba1c_baseline <- rnorm(n, 45, 2)
+# e <- rnorm(n, sd = 2)
+# hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
+# data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
+# data_hst <- subset(data, hst == 1)
+# data_cur <- subset(data, hst == 0)
+# mpConsts <- build_nimble_consts(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE)
+# mpData <- build_nimble_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
+# mpInits <- build_nimble_inits(data_cur, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE)
+# ancova_mp <- nimbleModel(code = mpCode, name = "ancova_mp", constants = mpConsts,
+# data = mpData, inits = mpInits)
+# cancova_mp <- compileNimble(ancova_mp)
+# mcmcConf <- configureMCMC(ancova_mp, monitors = c('beta','w'))
+# mcmc <- buildMCMC(mcmcConf)
+# cMcmc <- compileNimble(mcmc, project = ancova_mp)
+# samples1 <- runMCMC(cMcmc, niter = 5000, nburnin = 2500, nchains = 4, summary = TRUE)
+# ancova_mp$setData(mpData)
+# cancova_mp$setData(mpData)
+# ancova_mp$setInits(mpInits)
+# cancova_mp$setInits(mpInits)
+# 
+# samples2 <- runMCMC(cMcmc, niter = 5000, nburnin = 2500, nchains = 4, summary = TRUE)
+# 
+# 
+# 
+# 
+# mcmc.out <- nimbleMCMC(code = mpCode, constants = mpConsts,
+#                        data = mpData, inits = mpInits,
+#                        nchains = 4, niter = 5000, nburnin = 2500,
+#                        summary = TRUE,
+#                        monitors = c('beta','w'))
 ```
 
 
