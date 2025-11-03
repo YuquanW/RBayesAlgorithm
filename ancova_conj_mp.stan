@@ -36,13 +36,11 @@ model {
 
   // Mixture NIG prior on (beta, sigma2): mixture of joint densities
   {
-    real lp_ancova_conj_hst = multi_normal_cholesky_lpdf(beta | beta_hst, sqrt(sigma2) * L_Sigma_hst)
+    real lp_ancova_conj_hst = multi_normal_cholesky_lpdf(beta | beta_hst,sigma * L_Sigma_hst)
                   + inv_gamma_lpdf(sigma2 | a_hst, b_hst);
-    real lp_ancova_conj_vag = multi_normal_cholesky_lpdf(beta | beta_vag, sqrt(sigma2) * L_Sigma_vag)
+    real lp_ancova_conj_vag = multi_normal_cholesky_lpdf(beta | beta_vag, sigma * L_Sigma_vag)
                   + inv_gamma_lpdf(sigma2 | a_vag, b_vag);
-    target += log_mix(w_eff, lp_ancova_conj_hst, lp_ancova_conj_vag);
+    target += log_mix(w_eff, lp_ancova_conj_hst, lp_ancova_conj_vag) 
+                  + normal_lupdf(Y | X * beta, sigma);
   }
-
-  // Likelihood
-  Y ~ normal(X * beta, sigma);
 }

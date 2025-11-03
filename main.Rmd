@@ -157,11 +157,10 @@ nig_from_history <- function(X, Y) {
 
 # --- Construct data list for Stan ---
 build_ancova_data <- function(df_cur, df_hst, formula,
-                              prior_type = c("mixture","power"),
                               w_fixed = 0.5, estimate_w = FALSE,
                               beta_vag = NULL, scale_vag = NULL,
                               a_vag = NULL, b_vag = NULL) {
-  prior_type <- match.arg(prior_type)
+  
   des_cur <- mk_design(df_cur, formula)
   des_hst <- mk_design(df_hst, formula)
 
@@ -212,19 +211,20 @@ build_ancova_data <- function(df_cur, df_hst, formula,
   )
 }
 
-# --- Run Stan model ---
-run_ancova_conjugate <- function(df_cur, df_hst, formula,
-                                 prior_type = c("mixture", "power"),
-                                 w_fixed = 0.5, estimate_w = FALSE,
-                                 iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
+# --- Build Stan model ---
+build_ancova_model <- function(prior_type = c("mixture", "power")) {
   prior_type <- match.arg(prior_type)
-  dat <- build_ancova_data(df_cur, df_hst, formula,
-                           prior_type, 
-                           w_fixed, estimate_w)
-
   stan_file <- ifelse(prior_type == "mixture", "ancova_conj_mp.stan", "ancova_conj_pp.stan")
-  fit <- stan(file = stan_file, data = dat, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
-  return(list(fit = fit, dat = dat))
+  model <- stan_model(file = stan_file)
+  return(model)
+}
+
+# --- Run Stan model ---
+run_ancova_model <- function(model, data,
+                             iter = 5000, burnin = iter/2, chains = 4, seed = 123) {
+
+  fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, save_warmup = FALSE)
+  return(list(fit = fit, data = data))
 }
 
 # --- Extract treatment effect posterior ---
@@ -234,6 +234,35 @@ extract_pars <- function(fit_obj, eff_cols) {
   sm[idx, c("mean", "2.5%", "50%", "97.5%", "n_eff", "Rhat")]
 }
 ```
+
+``` {r}
+# --- Example run ---
+n <- 300
+n_hst <- 200
+n_cur <- n - n_hst
+hst <- c(rep(1, n_hst), rep(0, n_cur))
+alpha <- 0.5
+tau <- -5
+delta <- 0
+gamma <- 0.01
+treatment <- rbinom(n, 1, 0.5)
+hba1c_baseline <- rnorm(n, 45, 2)
+e <- rnorm(n, sd = 2)
+hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
+data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
+data_hst <- subset(data, hst == 1)
+data_cur <- subset(data, hst == 0)
+data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment,
+                          estimate_w = 1)
+ancova_model <- build_ancova_model("power")
+ancova_fit <- run_ancova_model(ancova_model, data)
+#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "mixture", chains = 4)
+#fit_conj_pp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "power", estimate_w = 0, chains = 4)
+#extract_pars(fit_conj_pp, "treatment")
+#lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_hst)
+```
+
+# Backup Code
 
 ```{r include = FALSE}
 # library(nimble)
@@ -388,30 +417,5 @@ extract_pars <- function(fit_obj, eff_cols) {
 #                        summary = TRUE,
 #                        monitors = c('beta','w'))
 ```
-
-
-``` {r}
-# --- Example run ---
-n <- 300
-n_hst <- 200
-n_cur <- n - n_hst
-hst <- c(rep(1, n_hst), rep(0, n_cur))
-alpha <- 0.5
-tau <- -5
-delta <- 0
-gamma <- 0.01
-treatment <- rbinom(n, 1, 0.5)
-hba1c_baseline <- rnorm(n, 45, 2)
-e <- rnorm(n, sd = 2)
-hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
-data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
-data_hst <- subset(data, hst == 1)
-data_cur <- subset(data, hst == 0)
-fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "mixture", chains = 4)
-fit_conj_pp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "power", estimate_w = 0, chains = 4)
-extract_pars(fit_conj_pp, "treatment")
-lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_hst)
-```
-
 
 # Reference {#sec5}

@@ -43,10 +43,6 @@ model {
   if (estimate_w == 1) w ~ beta(1, 1);
 
   // Normalized (conditional) power prior contribution
-  if (n_hst - p > 0) {
-    target += w_eff * normal_lpdf(Y_hst | X_hst * beta, sigma);
-  }
-
-  // Current likelihood
-  Y ~ normal(X * beta, sigma);
+  target += w_eff * normal_id_glm_lupdf(Y_hst | X_hst, 0, beta, sigma)//normal_lupdf(Y_hst | X_hst * beta, sigma)
+              + normal_id_glm_lupdf(Y | X, 0, beta, sigma);//normal_lupdf(Y | X * beta, sigma);
 }
