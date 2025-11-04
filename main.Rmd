@@ -55,7 +55,7 @@ NPP中的标准化项$C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta$通常�
 * Monte Carlo Metropolis-Hastings (MCMH) algorithm [@Liang2013]
 * Path sampling [@Friel2008; @Ye2022]
 
-由于$w$取值较小时，使用Laplace approximation可能会有较大偏差，本文档仅介绍后两种方法。使用MH算法从NPP相应的后验分布中抽样时，主要困难在于rejection的步骤中，比值$C(w)/C(w^\prime)$无法计算。基于MCMH算法的思想，一种可行的方法是在MH算法中嵌入bridge sampling：
+由于$w$取值较小时，使用Laplace approximation可能会有较大偏差，本文档仅介绍后两种方法。使用MH算法从NPP相应的后验分布中抽样时，主要困难在于rejection的步骤中，比值$C(w)/C(w^\prime)$无法计算。基于MCMH算法，一种可行的方法是在MH算法中嵌入以下近似：
 $$\frac{C(w)}{C(w^\prime)}=\frac{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}{\int L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)d\theta}=\int\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)}\cdot\frac{L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)}{\int L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)d\theta}d\theta=\lim_{M\to\infty}\frac{1}{M}\sum_{i=1}^M\frac{L(\theta_i|D_{hst})^w}{L(\theta_i|D_{hst})^{w^\prime}}, a.s.,$$
 其中$\theta_i\sim p_{pp}(\theta|w^\prime)\propto L(\theta|D_{hst})^{w^\prime}\pi_0(\theta)$。因此，我们可以通过MCMC算法抽取足够多的$\theta_i$来计算$C(w)/C(w^\prime)$。
 
@@ -74,13 +74,13 @@ $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 
 # Application {#sec3}
 
-## 非肿瘤项目
+<!-- ## 非肿瘤项目 -->
 
-### 连续变量终点
+## 连续变量终点
 
-#### MMRM模型
+<!-- #### MMRM模型 -->
 
-#### ANCOVA模型
+### ANCOVA模型
 
 ANCOVA的模型假设如下：
 $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2).$$
@@ -108,37 +108,52 @@ $$p_{pp}(\beta,\sigma^2|w)=N\left(\hat\beta_{hst},w^{-1}\sigma^2(X_{hst}^TX_{hst
 注意到当$w\leq p/n$时，幂先验可能为improper prior。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1})InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$$
 
-## 肿瘤项目
+<!-- ## 肿瘤项目 -->
 
 # Simulation Study {#sec4}
 
-## 非肿瘤项目
+<!-- ## 非肿瘤项目 -->
 
-### 连续变量终点
+## 连续变量终点
 
-对于连续变量终点，为简化问题，我们设定如下数据生成过程：
+对于连续变量终点，为简化问题，设定如下数据生成过程：
 
-$$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D_{hst}))A_{i}+\gamma Y_{i}^{baseline}+\varepsilon_{i},\\
+$$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baseline}+\varepsilon_{i},\\
+Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例，以及样本量$n=300$分配，治疗对照组的分配比均为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.4, -0.2, 0, 0.2, 0.4$。
 
-#### MMRM模型
 
-#### ANCOVA模型
+<!-- #### MMRM模型 -->
+
+### ANCOVA模型
+
+ANCOVA模型的模拟研究主要考虑以下几种信息先验方法：
+
+1. Fixed mixture prior with $w=0.25, 0.5, 0.75$ and $\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1}) InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$;
+2. Random mixture prior with $w\sim Beta(1, 1)$ and $\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1}) InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$;
+3. Fixed power prior with $w=0.353, 0.500, 0.707$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$;
+4. Random power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$;
+5. Normalized power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$.
+
+对于上述五种方法，在模拟研究中，就点估计和区间估计比较bias、RMSE、confidence interval (CI) length和coverage probability (CP)，就假设检验比较Type I error和power。 
+
+以下给出上述五种方法在一组示例模拟数据上的试运行结果：
 
 ```{r include=FALSE}
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = min(parallel::detectCores()-1, 8))
 
-# --- Helper: build design matrices ---
+# --- Util: Build design matrices ---
 mk_design <- function(df, formula) {
   X <- model.matrix(formula, df)
   Y <- model.response(model.frame(formula, df))
   list(Y = as.numeric(Y), X = X, cols = colnames(X))
 }
 
-# --- Derive Normal–Inverse-Gamma prior from historical data ---
+# --- Util: Derive NIG prior from historical data ---
 nig_from_history <- function(X, Y) {
   n <- nrow(X)
   p <- ncol(X)
@@ -155,7 +170,103 @@ nig_from_history <- function(X, Y) {
   list(beta = beta, L_Sigma = L_Sigma, RSS = RSS, a = a, b = b)
 }
 
-# --- Construct data list for Stan ---
+# --- Util: Run Stan model ---
+
+run_model <- function(model, data,
+                      iter = 5000, burnin = iter/2, chains = 4, seed = 123, refresh = max(iter/10, 1), save_warmup = FALSE) {
+  fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, refresh = refresh, save_warmup = save_warmup)
+  return(list(fit = fit, data = data))
+}
+
+# --- Util: Path sampling ---
+build_ancova_path_data <- function(df_hst, formula, wknot = NULL,
+                                   beta_vag = NULL, scale_vag = NULL,
+                                   a_vag = NULL, b_vag = NULL) {
+  des_hst <- mk_design(df_hst, formula)
+  hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
+    
+  if (is.null(beta_vag)) {
+    beta_vag <- hist_info_mp$beta
+  }
+  if (is.null(scale_vag)) {
+    L_Sigma_vag <- sqrt(nrow(des_hst$X))*hist_info_mp$L_Sigma
+  } else {
+    L_Sigma_vag <- t(chol(scale_vag))
+  }
+  if (is.null(a_vag)) {
+    a_vag <- 1/2
+  }
+  if (is.null(b_vag)) {
+    b_vag <- 1/2*hist_info_mp$RSS
+  }
+
+  list(
+    cols = des_hst$cols,
+    wknot = wknot,
+    n_hst = nrow(des_hst$X),
+    p_hst = ncol(des_hst$X),
+    Y_hst = des_hst$Y,
+    X_hst = des_hst$X,
+    beta_vag = beta_vag,
+    L_Sigma_vag = L_Sigma_vag,
+    a_vag = a_vag,
+    b_vag = b_vag
+  )
+}
+
+build_ancova_path_model <- function() {
+  stan_file <- "ancova_conj_path.stan"
+  model <- stan_model(file = stan_file)
+  return(model)
+}
+
+ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2,
+                                  beta_vag = NULL, scale_vag = NULL,
+                                  a_vag = NULL, b_vag = NULL,
+                                  iter = 2000, burnin = iter/2, chains = 1, seed = 123, 
+                                  refresh = 0, save_warmup = FALSE) {
+  K <- length(wknots)
+  mlls <- rep(NA, K)
+  
+  for (i in 1:K) {
+    ancova_path_dt <- build_ancova_path_data(df_hst, formula, wknots[i],
+                                             beta_vag, scale_vag,
+                                             a_vag, b_vag)
+    fit <- run_model(model, ancova_path_dt,
+                     iter, iter/2, chains, seed, 
+                     refresh = refresh,
+                     save_warmup = save_warmup)
+    mlls[i] <- mean(extract(fit$fit)$ll)
+    sprintf("Knot %i has finished.", i)
+  }
+  dvec <- c(wknots[1], diff(wknots))
+  lgC_est <- cumsum(dvec*mlls)
+  return(lgC_est)
+}
+
+
+
+n <- 300
+n_hst <- 200
+n_cur <- n - n_hst
+hst <- c(rep(1, n_hst), rep(0, n_cur))
+alpha <- 0.5
+tau <- 0.4
+delta <- 0
+gamma <- 0.1
+treatment <- rbinom(n, 1, 0.5)
+hba1c_baseline <- rnorm(n, 45, 0.5)
+e <- rnorm(n, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
+hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
+data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
+data_hst <- subset(data, hst == 1)
+data_cur <- subset(data, hst == 0)
+ancova_path_dt <- build_ancova_path_data(data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, wknot = 0.5)
+ancova_path_model <- build_ancova_path_model()
+save(ancova_path_model, "ancova_path_sampling")
+ancova_path_fit <- ancova_path_integrate(ancova_path_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, iter = 2000, chains = 1)
+
+# --- Build Stan data ---
 build_ancova_data <- function(df_cur, df_hst, formula,
                               w_fixed = 0.5, estimate_w = FALSE,
                               beta_vag = NULL, scale_vag = NULL,
@@ -166,8 +277,6 @@ build_ancova_data <- function(df_cur, df_hst, formula,
 
   # historical informative prior (scaled by a0)
   hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
-  
-  
   
   # vague prior
   if (is.null(beta_vag)) {
@@ -242,12 +351,12 @@ n_hst <- 200
 n_cur <- n - n_hst
 hst <- c(rep(1, n_hst), rep(0, n_cur))
 alpha <- 0.5
-tau <- -5
+tau <- 0.4
 delta <- 0
-gamma <- 0.01
+gamma <- 0.1
 treatment <- rbinom(n, 1, 0.5)
-hba1c_baseline <- rnorm(n, 45, 2)
-e <- rnorm(n, sd = 2)
+hba1c_baseline <- rnorm(n, 45, 0.5)
+e <- rnorm(n, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
 hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_baseline + e
 data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
 data_hst <- subset(data, hst == 1)
@@ -262,32 +371,54 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 #lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_hst)
 ```
 
-# Backup Code
+<!-- # Backup Code -->
 
 ```{r include = FALSE}
 # library(nimble)
+# dppancova <- nimbleFunction(
+#   run = function(x = double(1),
+#                  y_hst = double(1),
+#                  X_hst = double(2),
+#                  w = double(0),
+#                  beta0 = double(1),
+#                  Sigma0 = double(2),
+#                  a0 = double(0),
+#                  b0 = double(0),
+#                  log = integer(0, default = 0)) {
+#     returnType(double(0))
+#     
+#     n <- dim(X_hst)[1]
+#     p <- dim(X_hst)[2]
+#     
+#     beta <- x[1:p]
+#     sigma2 <- x[p+1]
+#     
+#     logProb <- w*sum(dnorm(y_hst, mean = X_hst %*% beta, sd = sqrt(sigma2), log = TRUE)) +
+#       dmnorm_chol(beta, mean = beta0, cholesky = sqrt(n*sigma2)*chol(Sigma0), log = TRUE) + 
+#       dinvgamma(sigma2, shape = a0, scale = b0, log = TRUE)
+#     if(log) return(logProb)
+#     else return(exp(logProb))
+# })
+# 
 # mpCode <- nimbleCode({
 #   if (estimate_w) {
 #     w ~ dunif(0, 1)
 #   } else {
 #     w <- w_fixed
 #   }
-#   z ~ dbern(w)
-#   
-#   ## Historical prior
-#   betah[1:p] ~ dmnorm(beta0[1:p], cov = Cov_betah[1:p, 1:p])#dmnorm(beta0[1:p], cov = Cov_betah[1:p, 1:p])
-#   Cov_betah[1:p, 1:p] <- sigma2h*Sigma0[1:p, 1:p]
-#   #sigma2h ~ dinvgamma(ah, bh)
-#   #ah <- (n-p)/2
-#   #bh <- RSS/2
-#   
-#   ## Vague prior  
-#   betav[1:p] ~ dmnorm(beta1[1:p], cov = Cov_betav[1:p, 1:p])#dmnorm(beta0[1:p], cov = Cov_beta[1:p, 1:p])
-#   Cov_betav[1:p, 1:p] <- n*sigma2v*Sigmav[1:p, 1:p]
-#   #sigma2v ~ dinvgamma(a0, b0)
-#     
-#   beta[1:p] <- (z == 1)*betah[1:p] + (z == 0)*betav[1:p]
-#   sigma2 <- (z == 1)*sigma2h + (z == 0)*sigma2v
+# 
+#   ## Power prior
+#   theta[1:(p+1)] ~ dppancova(y_hst = y0[1:n0], 
+#                              X_hst = X0[1:n0, 1:p],
+#                              w = w,
+#                              beta0 = beta0[1:p],
+#                              Sigma0 = Sigma0[1:p, 1:p],
+#                              a0 = a0,
+#                              b0 = b0)
+#   beta[1:p] <- theta[1:p]
+#   sigma2 <- theta[p+1]
+# 
+#   ## Likelihood
 #   y[1:n] ~ dmnorm(mu[1:n], cov = Cov_y[1:n, 1:n])
 #   mu[1:n] <- X[1:n, 1:p] %*% beta[1:p]
 #   Cov_y[1:n, 1:n] <- sigma2*diag(n)
@@ -299,7 +430,7 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 #   list(y = as.numeric(y), X = X, cols = colnames(X))
 # }
 # 
-# build_nimble_consts <- function(df_cur, df_hst, formula, 
+# build_nimble_consts <- function(df_cur, df_hst, formula,
 #                                w_fixed = 0.5, estimate_w = FALSE) {
 #   des_cur <- mk_design(df_cur, formula)
 #   des_hst <- mk_design(df_hst, formula)
@@ -323,20 +454,20 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 #   des_hst <- mk_design(df_hst, formula)
 #   fit_cur <- lm(formula, df_cur)
 #   fit_hst <- lm(formula, df_hst)
-#   
+# 
 #   if (is.null(beta0)) {
 #     beta0 <- coef(fit_hst)
 #   }
 #   if (is.null(Sigma0)) {
 #     Sigma0 <- solve(crossprod(des_hst$X))
-#   } 
+#   }
 #   if (is.null(a0)) {
 #     a0 <- 1/2
 #   }
 #   if (is.null(b0)) {
 #     b0 <- 1/2*sum(fit_hst$residuals^2)
 #   }
-#   
+# 
 #   list(
 #     #n = nrow(des_cur$X),
 #     y = des_cur$y,
@@ -359,18 +490,20 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 #   des_cur <- mk_design(df_cur, formula)
 #   fit_cur <- lm(formula, df_cur)
 #   if (estimate_w) {
-#     list(#betah = coef(fit_cur),
+#     list(betah = coef(fit_cur),
 #          lsigma2 = log(sigma(fit_cur)^2),
-#          #sigma2h = sigma(fit_cur)^2,
-#          #sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
-#          z = 0,
-#          w = 0.5)
+#          sigma2h = sigma(fit_cur)^2,
+#          sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
+#          theta = c(coef(fit_cur), sigma(fit_cur)^2),
+#          z = 1,
+#          w = 1)
 #   } else {
-#     list(#betah = coef(fit_cur),
+#     list(betah = coef(fit_cur),
 #          lsigma2 = log(sigma(fit_cur)^2),
-#          #sigma2h = sigma(fit_cur)^2,
-#          #sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
-#          z = 0)
+#          sigma2h = sigma(fit_cur)^2,
+#          sigma2v = nrow(des_cur$X)*sigma(fit_cur)^2,
+#          theta = c(coef(fit_cur), sigma(fit_cur)^2),
+#          z = 1)
 #   }
 # }
 # 
@@ -382,7 +515,7 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 # hst <- c(rep(1, n_hst), rep(0, n_cur))
 # alpha <- 0.5
 # tau <- -5
-# delta <- 10
+# delta <- 0
 # gamma <- 0.01
 # treatment <- rbinom(n, 1, 0.5)
 # hba1c_baseline <- rnorm(n, 45, 2)
@@ -396,7 +529,8 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 # mpInits <- build_nimble_inits(data_cur, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE)
 # ancova_mp <- nimbleModel(code = mpCode, name = "ancova_mp", constants = mpConsts,
 # data = mpData, inits = mpInits)
-# cancova_mp <- compileNimble(ancova_mp)
+# 
+# cancova_mp <- compileNimble(ancova_mp, showCompilerOutput = T)
 # mcmcConf <- configureMCMC(ancova_mp, monitors = c('beta','w'))
 # mcmc <- buildMCMC(mcmcConf)
 # cMcmc <- compileNimble(mcmc, project = ancova_mp)
@@ -406,7 +540,7 @@ ancova_fit <- run_ancova_model(ancova_model, data)
 # ancova_mp$setInits(mpInits)
 # cancova_mp$setInits(mpInits)
 # 
-# samples2 <- runMCMC(cMcmc, niter = 5000, nburnin = 2500, nchains = 4, summary = TRUE)
+# samples2 <- runMCMC(cMcmc, niter = 2500, nburnin = 0, nchains = 4, summary = TRUE)
 # 
 # 
 # 

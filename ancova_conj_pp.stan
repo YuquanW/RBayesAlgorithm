@@ -1,4 +1,15 @@
 // File: ancova_conj_pp.stan
+functions{
+  real interpolateC(real deltaCur, int numdelta, vector deltaKnot, vector logCKnot){
+  real logCest;
+  for(id in 1:(numdelta-1)){
+    if(deltaCur >= deltaKnot[id] && deltaCur < deltaKnot[id+1]){
+      logCest = logCKnot[id]+ (deltaCur-deltaKnot[id])*(logCKnot[id+1]-logCKnot[id])/(deltaKnot[id+1]-deltaKnot[id]);
+    }  // Interpolation function, given a sequence of logCKnot
+  }
+  return logCest;
+}
+}
 data {
   // Current data
   int<lower=1> n;
@@ -42,7 +53,7 @@ model {
   // Optional prior on w
   if (estimate_w == 1) w ~ beta(1, 1);
 
-  // Normalized (conditional) power prior contribution
-  target += w_eff * normal_id_glm_lupdf(Y_hst | X_hst, 0, beta, sigma)//normal_lupdf(Y_hst | X_hst * beta, sigma)
-              + normal_id_glm_lupdf(Y | X, 0, beta, sigma);//normal_lupdf(Y | X * beta, sigma);
+  // Unnormalized power prior
+  target += w_eff * normal_id_glm_lpdf(Y_hst | X_hst, 0, beta, sigma)
+              + normal_id_glm_lpdf(Y | X, 0, beta, sigma);
 }
