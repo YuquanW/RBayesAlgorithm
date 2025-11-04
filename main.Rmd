@@ -174,7 +174,9 @@ nig_from_history <- function(X, Y) {
 
 run_model <- function(model, data,
                       iter = 5000, burnin = iter/2, chains = 4, seed = 123, refresh = max(iter/10, 1), save_warmup = FALSE) {
+  suppressWarnings({
   fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, refresh = refresh, save_warmup = save_warmup)
+  })
   return(list(fit = fit, data = data))
 }
 
@@ -228,7 +230,7 @@ ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2
   K <- length(wknots)
   mlls <- rep(NA, K)
   
-  for (i in 1:K) {
+  for (i in 1:K) {  # Consider use foreach here
     ancova_path_dt <- build_ancova_path_data(df_hst, formula, wknots[i],
                                              beta_vag, scale_vag,
                                              a_vag, b_vag)
@@ -237,11 +239,11 @@ ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2
                      refresh = refresh,
                      save_warmup = save_warmup)
     mlls[i] <- mean(extract(fit$fit)$ll)
-    sprintf("Knot %i has finished.", i)
+    cat(sprintf("Knot %i has finished.\n", i))
   }
   dvec <- c(wknots[1], diff(wknots))
-  lgC_est <- cumsum(dvec*mlls)
-  return(lgC_est)
+  lgCknots <- cumsum(dvec*mlls)
+  return(lgCknots)
 }
 
 
@@ -263,14 +265,15 @@ data_hst <- subset(data, hst == 1)
 data_cur <- subset(data, hst == 0)
 ancova_path_dt <- build_ancova_path_data(data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, wknot = 0.5)
 ancova_path_model <- build_ancova_path_model()
-save(ancova_path_model, "ancova_path_sampling")
+save(ancova_path_model, file = "ancova_path_sampling.RData")
 ancova_path_fit <- ancova_path_integrate(ancova_path_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, iter = 2000, chains = 1)
 
 # --- Build Stan data ---
 build_ancova_data <- function(df_cur, df_hst, formula,
-                              w_fixed = 0.5, estimate_w = FALSE,
+                              w_fixed = 0.5, estimate_w = FALSE, 
                               beta_vag = NULL, scale_vag = NULL,
-                              a_vag = NULL, b_vag = NULL) {
+                              a_vag = NULL, b_vag = NULL,
+                              wknots = c(0, 1), lgCknots = c(0, 0)) {
   
   des_cur <- mk_design(df_cur, formula)
   des_hst <- mk_design(df_hst, formula)
@@ -303,6 +306,10 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     p = ncol(des_cur$X),
     Y = des_cur$Y,
     X = des_cur$X,
+    n_hst = nrow(des_hst$X),
+    p_hst = ncol(des_hst$X),
+    Y_hst = des_hst$Y,
+    X_hst = des_hst$X,
     beta_hst = hist_info_mp$beta,
     L_Sigma_hst = hist_info_mp$L_Sigma,
     a_hst = hist_info_mp$a,
@@ -313,10 +320,9 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     b_vag = b_vag,
     w_fixed = w_fixed,
     estimate_w = estimate_w,
-    n_hst = nrow(des_hst$X),
-    p_hst = ncol(des_hst$X),
-    Y_hst = des_hst$Y,
-    X_hst = des_hst$X
+    K = length(wknots),
+    wknots = wknots,
+    lgCknots = lgCknots
   )
 }
 
@@ -361,9 +367,11 @@ hba1c <- hba1c_baseline + alpha + (tau + delta*hst)*treatment + gamma*hba1c_base
 data <- data.frame(hba1c_baseline, treatment, hst, hba1c)
 data_hst <- subset(data, hst == 1)
 data_cur <- subset(data, hst == 0)
+data_cur$hba1c <- data_cur$hba1c - 0.8*data_cur$treatment
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment,
-                          estimate_w = 1)
+                          estimate_w = 1, wknots = (0:200/200)^2, lgCknots = ancova_path_fit)
 ancova_model <- build_ancova_model("power")
+save(ancova_model, file = "ancova_power_prior.RData")
 ancova_fit <- run_ancova_model(ancova_model, data)
 #fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "mixture", chains = 4)
 #fit_conj_pp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "power", estimate_w = 0, chains = 4)

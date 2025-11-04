@@ -1,14 +1,14 @@
 // File: ancova_conj_pp.stan
 functions{
-  real interpolateC(real deltaCur, int numdelta, vector deltaKnot, vector logCKnot){
-  real logCest;
-  for(id in 1:(numdelta-1)){
-    if(deltaCur >= deltaKnot[id] && deltaCur < deltaKnot[id+1]){
-      logCest = logCKnot[id]+ (deltaCur-deltaKnot[id])*(logCKnot[id+1]-logCKnot[id])/(deltaKnot[id+1]-deltaKnot[id]);
-    }  // Interpolation function, given a sequence of logCKnot
+  real interpolateC(real w, int K, vector wknots, vector lgCknots){
+    real logCest;
+    for(id in 1:(K-1)){
+      if(w >= wknots[id] && w < wknots[id+1]){
+        logCest = lgCknots[id]+ (w-wknots[id])*(lgCknots[id+1]-lgCknots[id])/(wknots[id+1]-wknots[id]);
+      } 
+    }
+    return logCest;
   }
-  return logCest;
-}
 }
 data {
   // Current data
@@ -33,6 +33,11 @@ data {
   real<lower=0, upper=1> w_fixed; // used if estimate_w==0
   int<lower=0, upper=1> estimate_w;
 
+  // Normalized power prior constant
+  int<lower=1> K;
+  vector<lower=0, upper=1>[K] wknots;
+  vector[K] lgCknots;
+
   // Historical max log-likelihood (MLE): ll0_hat = max_{beta,sigma} log p(y0|X0,beta,sigma)
   //real ll0_hat;
 }
@@ -53,7 +58,10 @@ model {
   // Optional prior on w
   if (estimate_w == 1) w ~ beta(1, 1);
 
-  // Unnormalized power prior
+  // Optional normalization
+  real lgC = interpolateC(w, K, wknots, lgCknots);
+
+  // Power prior
   target += w_eff * normal_id_glm_lpdf(Y_hst | X_hst, 0, beta, sigma)
-              + normal_id_glm_lpdf(Y | X, 0, beta, sigma);
+              + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - lgC;
 }
