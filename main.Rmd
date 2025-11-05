@@ -106,7 +106,7 @@ $$p_{pp}(\beta|w)\propto N\left(\hat\beta_{hst},w^{-1}\hat\sigma^2(X_{hst}^TX_{h
 在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\beta)=\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1}).$$
 
-此时，若考虑$w$为随机变量，则$C(w)=|(n+w^{-1})\hat\sigma^2(X^TX)^{-1}|^{-1/2}\propto (n+w^{-1})^{-p/2}$有显式表达式，可以用于评估path sampling算法的精确度。
+此时，若考虑$w$为随机变量，则$C(w)=(2\pi\sigma^2)^{-nw/2}\exp\{-(n-p)w/2\}(1+nw)^{-p/2}$有显式表达式，可以用于评估path sampling算法的精确度。
 
 <!-- ## 肿瘤项目 -->
 
@@ -236,10 +236,12 @@ build_ancova_data <- function(df_cur, df_hst, formula,
                               wknots = c(0, 1), lgCknots = c(0, 0), exact_constant = TRUE) {
   
   des_cur <- mk_design(df_cur, formula)
-
+  des_hst <- mk_design(df_hst, formula)
+  
   # historical informative prior (scaled by a0)
   fit_hst <- lm(formula, df_hst)
   beta_hst <- coef(fit_hst)
+  sigma2_hst <- sigma(fit_hst)^2
   L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
   
   # vague prior
@@ -258,7 +260,10 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     p = ncol(des_cur$X),
     Y = des_cur$Y,
     X = des_cur$X,
+    n_hst = nrow(des_hst$X),
+    p_hst = ncol(des_hst$X),
     beta_hst = beta_hst,
+    sigma2_hst = sigma2_hst,
     L_Sigma_hst = L_Sigma_hst,
     beta_vag = beta_vag,
     L_Sigma_vag = L_Sigma_vag,
@@ -330,7 +335,7 @@ ancova_fit <- run_model(mixture_model, data)
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
 power_model <- build_ancova_model("power")
 save(power_model, file = "ancova_power_prior.RData")
-ancova_fit <- run_model(power_model, data, iter = 10000)
+ancova_fit <- run_model(power_model, data)
 
 ## Random power prior
 

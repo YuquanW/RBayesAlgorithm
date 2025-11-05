@@ -53,11 +53,10 @@ model {
   if (estimate_w == 1) w ~ beta(1, 1);
 
   // Optional normalization
-  real lgC = estimate_w*normalization*(exact_constant*(-w*(n_hst/2*log(2*pi*sigma2_hst)+(n_hst-p_hst)/2)-p_hst/2*log(n_hst*w+1))
-               + (1-exact_constant)*interpolateC(w, K, wknots, lgCknots));
+  real lgC = normalization*(exact_constant*(-w_eff*(n_hst/2*log(2*pi()*sigma2_hst)+(n_hst-p_hst)/2)-p_hst/2*log1p(n_hst*w_eff)) + (1-exact_constant)*interpolateC(w_eff, K, wknots, lgCknots));
 
   // Power prior
   target += w_eff * multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst)
              + multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag)
-             + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - lgC;
+             + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - lgC - log(sigma2);
 }
