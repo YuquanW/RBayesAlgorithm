@@ -30,11 +30,11 @@ model {
   // optional prior on w
   if (estimate_w == 1) w ~ beta(1, 1);
 
-  // Mixture prior on beta
+  // Mixture prior on beta and improper prior on sigma2
   {
-    real lp_ancova_conj_hst = multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst);
-    real lp_ancova_conj_vag = multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag);
-    target += log_mix(w_eff, lp_ancova_conj_hst, lp_ancova_conj_vag) 
-               + normal_id_glm_lpdf(Y | X, 0, beta, sigma);
+    target += log_mix(w_eff, 
+                      multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst), 
+                      multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag))
+               + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - log(sigma2);
   }
 }

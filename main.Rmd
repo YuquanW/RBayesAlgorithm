@@ -20,33 +20,42 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction {#sec1}
 
-本文档旨在完善Bayesian统计在临床试验中应用时涉及的算法，所考虑的先验仅包括混合先验和幂先验。在章节\@ref(sec2)中，本文档将简介混合先验及幂先验的统计学理论。在章节\@ref(sec3)中，本文档将基于SAP模板中的主要分析方法 (MMRM、ANCOVA、negative binomial regression、stratified CMH以及stratified Cox-PH regression)，给出相应的基于混合先验以及幂先验的Bayesian算法框架。在章节\@ref(sec4)中，本文档将基于不同场景下的模拟案例，就参数估计和假设检验，比较不同类型的先验下，频率学方法以及Bayesian方法的统计性能。
+本文旨在完善Bayesian统计在临床试验中应用时涉及的算法，所考虑的先验仅包括混合先验和幂先验。章节\@ref(sec2)简介混合先验及幂先验信息借用的统计学理论。章节\@ref(sec3)讨论混合先验和幂先验信息借用在SAP模板的各主要终点中的应用 (对应的频率学派方法为MMRM、ANCOVA、negative binomial regression、stratified CMH以及stratified Cox-PH regression)。章节\@ref(sec4)将基于`rstan`实现混合先验及幂先验信息借用在实际数据中的应用，通过不同场景下的模拟案例，就参数估计和假设检验，比较不同类型的先验下，频率学派方法、混合先验信息借用和幂先验信息借用的统计性能。
 
 # Method and Notation {#sec2}
 
-令$D$表示分析数据，$D_{hst}$表示历史数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验权重或幂先验的幂次。此外，对于具体的模型，令$(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$i=1,\dots,n$表示个体的下标。
-令$p_{hst}(\theta|D_{hst})$表示信息先验。
+令$D$表示分析数据，$D_{hst}$表示历史数据，$\theta$表示模型参数，$w\in [0, 1]$表示混合先验的权重参数或幂先验的温度参数。令$D=(Y, A, Z)$分别表示分析数据的结局、治疗分组和协变量，$D_{hst}=(Y_{hst}, A_{hst}, Z_{hst})$分别表示历史数据的结局、治疗分组和协变量，$1\leq i\leq n$表示第i个个体。$p_{hst}(\theta|D_{hst})$表示信息先验。
 
-## 混合先验  
+## 混合先验信息借用
 
 混合先验将信息先验$p_{hst}(\theta|D_{hst})$和模糊先验$\pi_{vag}(\theta)$按一定的权重混合，其中，$\pi_{vag}(\theta)$通常取弱信息共轭先验（如对二分类终点，可取Jeffreys' prior；对其他终点可取unit information prior）[@Kass1995; @Schmidli2014]，
-$$p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta).$$
+\begin{equation}
+p_{mp}(\theta|w) \propto wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta). (\#eq:1)
+\end{equation}
 
 若无法确定$w$的值，可将$w$也看作随机变量，此时将由数据自适应决定权重分配，然而，将$w$看作随机变量并不等同于dynamically borrowing [@Yang2023]，
-$$p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w).$$
+\begin{equation}
+p_{mp}(\theta,w)\propto\left(wp_{hst}(\theta|D_{hst})+(1-w)\pi_{vag}(\theta)\right)\pi(w). (\#eq:2)
+\end{equation}
 
-## 幂先验
+除了式\@ref(eq:1)和\@ref(eq:2)的两种方法以外，还有 @Yang2023 提出的动态信息借用的混合先验self-adapting mixture prior (SAM prior)，同时，他们在文章中指出混合先验\@ref(eq:2)的统计性能并不好：*In addition, we investigate three alternative approaches: (a) a fully Bayesian approach by assigning $w$ a uniform prior ... none of these approaches perform well.* 此外，也有相关的材料指出$w\sim Unif(0, 1)$时fully Bayesian approach的推断结果与$w=0.5$相近。 
+
+## 幂先验信息借用
 
 幂先验的表达式如下：
 $$p_{pp}(\theta|w) \propto L(\theta|D_{hst})^w\pi_0(\theta).$$
-从表达式不难得出，当$w=0$时，幂先验不借用历史数据$D_{hst}$；当 $w=1$时，幂先验完全借用历史数据$D_{hst}$。幂先验的一个重要性质为当$\pi_0(\theta)$为proper prior时，幂先验也是proper prior。
+从表达式不难得出，当$w=0$时，幂先验不借用历史数据$D_{hst}$；当 $w=1$时，幂先验完全借用历史数据$D_{hst}$。幂先验的一个重要性质为当$\pi_0(\theta)$为proper prior时，幂先验也是proper prior [@Ibrahim2015]。
 
 同样地，若无法确定$w$的值，幂先验也可将$w$也看作随机变量，此时有
-$$p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).$$
+\begin{equation}
+p_{pp}(\theta,w)\propto L(\theta|D_{hst})^w\pi_0(\theta)\pi(w).(\#eq:3)
+\end{equation}
 
 然而，与混合先验不同的是，若不对信息先验$L(\theta|D_{hst})^w\pi_0(\theta)$标准化，该幂先验会违背Likelihood Principle [@Robert2007; @Berry2010]：当历史数据相同时，对历史数据取不同的充分统计量，得到的先验分布也会不同，因而会产生不同的推断结果。因此，在将$w$看作随机变量时，需要进行如下标准化，
-$$p_{npp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).$$
-经过标准化的幂先验又称为NPP (Normalized power prior) 或MPP (Modified power prior)[@Ibrahim2015; @Banbeta2019]。对于initial prior $\pi_0(\theta)$的选择，从代码实施和后验的收敛角度考虑，建议$\pi_0(\theta)$取proper prior。
+\begin{equation}
+p_{npp}(\theta,w)=p_{pp}(\theta|w)\pi(w)=\frac{L(\theta|D_{hst})^w\pi_0(\theta)}{\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta}\pi(w).(\#eq:4)
+\end{equation}
+经过标准化的幂先验\@ref(eq:4)又称为NPP (Normalized power prior) 或MPP (Modified power prior)[@Ibrahim2015; @Banbeta2019]。对于initial prior $\pi_0(\theta)$的选择，从后验的收敛角度考虑，建议$\pi_0(\theta)$取proper prior。
 
 NPP中的标准化项$C(w)=\int L(\theta|D_{hst})^w\pi_0(\theta)d\theta$通常没有显式表达式，因此常使用积分近似，具体的算法主要包括以下几类：
 
@@ -69,11 +78,13 @@ $$\log C(w)=\int_0^wE_{p_{pp}(\theta|w^\ast)}[l(\theta|D_{hst})]dw^\ast,$$
 * Step 3: Calculate $\log C(w_l) ≈ \sum^l_{k=1} \Delta_k\{h(w_{k−1}) + h(w_k)\}$ (the Trapezoidal rule).
 * Step 4: Increase $l$ by 1. If $l \leq n$ then repeat Steps 1 to 3.
 
-相较于MCMH算法，path sampling在`stan`中易于实现。此外，MCMH算法在每次从proposal distribution抽样时，都要再嵌套一层MCMC抽样来计算acceptance ratio；而path sampling算法可以独立于MH算法给出所有的$\log C(w_l)$，因此计算效率可能高于MCMH算法。综合考虑，尽管MCMH算法可能更加精准和稳定，本文档优先使用path sampling实现NPP方法。如有必要（例如path sampling收敛不稳定等），使用`nimble`实现MCMH算法。
+相较于MCMH算法，path sampling在`stan`中易于实现。此外，MCMH算法在每次从proposal distribution抽样时，都要再嵌套一层MCMC抽样来计算acceptance ratio；而path sampling算法可以独立于MH算法给出所有的$\log C(w_l)$，因此计算效率远高于MCMH算法。综合考虑，尽管MCMH算法可能更加精准和稳定，本文优先使用path sampling实现NPP方法。在\@ref(sec4)中，由于$\log C(w)$在ANCOVA模型下有显式表达式，本文将比较使用精确$\log C(w)$和使用path sampling近似时的区别。
+
+@Neuenschwander2009 指出unnormalized power prior \@ref(eq:3)在某些情况下不适用（如在估计rate时对$w$的选择会趋于0）。@Hobbs2011 指出NPP没有直接将历史数据和新数据间的可比性参数化，并且无论是unnormalized power prior还是NPP，往往都倾向于衰减$w$：*A problem with modified joint power priors is that they do not directly parameterize the commensurability of the historical and new data... Furthermore, Neelon and O’Malley (2010) caution against using Ibrahim–Chen and MPPs because they both tend to overattenuate the impact of the historical data, forcing the use of fairly large $\alpha_0$ (or in our case, fairly informative hyperpriors for $\alpha_0$) to deliver sufficient borrowing. * 同时，他们也给出了新的幂先验方法commensurate power prior (CPP)来解决上述问题。本文暂不考虑CPP方法的应用。
 
 ## Remark
 
-无论是混合先验，还是幂先验，需要明确研究中的目标参数。若冗余参数取值在历史数据和分析数据中相近，此时将冗余参数也纳入信息先验中，会导致在随机权重的模型中，赋予历史数据的权重膨胀，从而增加目标参数的估计偏差。因此，一般不建议将冗余参数也纳入信息先验，而是通过极大似然估计等替代历史数据中的冗余参数 [@Hobbs2011]。
+无论是混合先验，还是幂先验，需要明确研究中的目标参数。若冗余参数取值在历史数据和分析数据中相近，此时将冗余参数也纳入信息先验中，会导致在随机权重的模型中，赋予历史数据的权重膨胀，从而增加目标参数的估计偏差。因此，一般不建议将冗余参数也纳入信息先验，而是像 @Hobbs2011 文中通过极大似然估计等替代历史数据中的冗余参数。
 
 # Application {#sec3}
 
@@ -91,22 +102,24 @@ $$Y_i=\alpha+\tau A_i+Z_i^T\gamma+\varepsilon_i, \varepsilon_i\sim N(0, \sigma^2
 $$Y\sim N(X\beta, \sigma^2I),$$
 其中$X=[1, A, Z]\in\mathbb{R}^{n\times p}$，$\beta = [\alpha, \tau, \gamma^T]^T$。
 
-对于历史数据，有$\beta\sim N(\hat{\beta},\sigma^2(X^TX)^{-1})$，其中$\sigma^2$可用极大似然估计$\hat{\sigma}^2=RSS/(n-p)$代入。因此，混合先验为
-$$p_{mp}(\beta,\sigma^2|w)\sim wN(\hat{\beta},\hat\sigma^2(X^TX)^{-1})+(1-w)\pi_{vag}(\beta,\sigma^2).$$
+对于历史数据，有$\beta\sim N(\hat{\beta},\sigma^2(X^TX)^{-1})$，其中$\sigma^2$可用无偏估计$\hat{\sigma}^2=RSS/(n-p)$代入。因此，混合先验为
+$$p_{mp}(\beta|w)\sim wN(\hat{\beta},\hat\sigma^2(X^TX)^{-1})+(1-w)\pi_{vag}(\beta).$$
 
-对于$\pi_{vag}(\beta,\sigma^2)$的选取，可用unit information prior $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$。
+对于$\pi_{vag}(\beta)$的选取，可用unit information prior $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$。
 
 
 幂先验为 [@Ibrahim2003]
 $$
 p_{pp}(\beta,\sigma^2|w)\propto (\sigma^2)^{-\frac{nw}{2}}\exp\left\{-\frac{1}{2}(\sigma^2/w)^{-1}(Y_{hst}-X_{hst}\beta)^T(Y_{hst}-X_{hst}\beta)\right\}\pi_0(\theta).
 $$
-同样使用极大似然估计代入$\sigma^2$，信息先验可表示为
+同样使用无偏估计代入$\sigma^2$，此时幂先验可表示为
 $$p_{pp}(\beta|w)\propto N\left(\hat\beta_{hst},w^{-1}\hat\sigma^2(X_{hst}^TX_{hst})^{-1}\right)\pi_0(\beta).$$
-在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
+从该表达式也可看出，当温度$w$增加时，将借用更多的历史信息，而当温度$w$降低时，幂先验的密度将会趋于平坦，从而趋近无信息先验。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\beta)=\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1}).$$
 
-此时，若考虑$w$为随机变量，则$\log C(w)=const - \frac{pw}{2}\log 2\pi-\frac{w}{2}\log |\hat\sigma^2(X_{hst}^TX_{hst})^{-1})|-\frac{p}{2}\log w+\log N(\hat\beta_{hst};\hat\beta_{hst},(w^{-1}+n)\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$有显式表达式，可以用于评估path sampling算法的精确度。
+此时，若考虑$w$为随机变量，则
+$$\log C(w)=const - \frac{pw}{2}\log 2\pi-\frac{w}{2}\log |\hat\sigma^2(X_{hst}^TX_{hst})^{-1})|-\frac{p}{2}\log w+\log N(\hat\beta_{hst};\hat\beta_{hst},(w^{-1}+n)\hat\sigma^2(X_{hst}^TX_{hst})^{-1}),$$
+可以直接计算，在接下来的章节将用于评估path sampling算法的精确度。
 
 <!-- ## 肿瘤项目 -->
 
@@ -122,7 +135,7 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例，以及样本量$n=300$分配，治疗对照组的分配比均为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6$。
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例分配，其中分析数据的样本量$n=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6$。
 
 
 <!-- #### MMRM模型 -->
@@ -131,15 +144,17 @@ Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 
 ANCOVA模型的模拟研究主要考虑以下几种信息先验方法：
 
-1. Fixed mixture prior with $w=0.25, 0.5, 0.75$ and $\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1}) InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$;
-2. Random mixture prior with $w\sim Beta(1, 1)$ and $\pi_{vag}(\beta,\sigma^2)=N(\hat\beta_{hst},n\sigma^2(X_{hst}^TX_{hst})^{-1}) InvGamma(\frac{1}{2}, \frac{RSS_{hst}}{2})$;
-3. Fixed power prior with $w=0.25, 0.5, 0.71$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$;
-4. Random power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$;
-5. Normalized power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta,\sigma^2)=\pi_{vag}(\beta,\sigma^2)$.
+1. Fixed mixture prior with $w=0.5$ and $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$;
+2. Random mixture prior with $w\sim Beta(1, 1)$ and $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$;
+3. Fixed power prior with $w=0.5$ and $\pi_0(\beta)=\pi_{vag}(\beta)$;
+4. Unnormalized power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$;
+5. Normalized power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$ using exact $\log C(w)$;
+6. Normalized power prior with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$ using path sampling;
+7. ANCOVA with current data.
 
-对于上述五种方法，在模拟研究中，就点估计和区间估计比较bias、RMSE、confidence interval (CI) length和coverage probability (CP)，就假设检验比较Type I error和power。 
+在模拟研究中，对于点估计和区间估计，比较bias、RMSE、confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power。 
 
-以下给出上述五种方法在一组示例模拟数据上的试运行结果：
+以下给出上述六种方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度：
 
 ```{r include=FALSE}
 library(rstan)
@@ -282,82 +297,126 @@ extract_pars <- function(fit_obj, eff_cols) {
 }
 ```
 
-``` {r}
-# --- Example run ---
+``` {r include = FALSE}
+# # --- Example run ---
 n <- 300
 n_hst <- 200
 n_cur <- n - n_hst
 alpha <- 0.5
 tau <- 0.4
 gamma <- 0.1
-
-## Historical data generation
-treatment_hst <- rbinom(n_hst, 1, 0.5)
-hba1c_baseline_hst <- rnorm(n_hst, 45, 0.5)
-e_hst <- rnorm(n_hst, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
-hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst + e_hst
-data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst, 
-                       treatment = treatment_hst, 
-                       hba1c = hba1c_hst)
-ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
-save(ancova_ps_model, file = "ancova_ps.RData")
-knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-save("knots", "data_hst", file = "Historical.RData")
+# 
+# ## Historical data generation
+# treatment_hst <- rbinom(n_hst, 1, 0.5)
+# hba1c_baseline_hst <- rnorm(n_hst, 45, 0.5)
+# e_hst <- rnorm(n_hst, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
+# hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst + e_hst
+# data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst,
+#                        treatment = treatment_hst,
+#                        hba1c = hba1c_hst)
+# ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
+# save(ancova_ps_model, file = "ancova_ps.RData")
+# knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
+# save("knots", "data_hst", file = "Historical.RData")
+load("Historical.RData")
 
 ## Current data generation
-delta <- -0.4
+delta <- 0
 treatment <- rbinom(n_cur, 1, 0.5)
 hba1c_baseline <- rnorm(n_cur, 45, 0.5)
 e <- rnorm(n_cur, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
 hba1c <- hba1c_baseline + alpha + (tau + delta)*treatment + gamma*hba1c_baseline + e
 data_cur <- data.frame(hba1c_baseline, treatment, hba1c)
+```
 
+```{r include=FALSE}
+## Load model
+load("ancova_mixture_prior.RData")
+load("ancova_power_prior.RData")
+```
+
+1. Mixture prior with fixed $w$
+
+```{r}
 ## Fixed mixture prior
-
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-mixture_model <- build_ancova_model("mixture")
-save(mixture_model, file = "ancova_mixture_prior.RData")
 ancova_fit <- run_model(mixture_model, data)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2"))
+```
 
+2. Mixture prior with random $w$
+
+```{r}
 ## Random mixture prior
-
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, beta_vag = coef(lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_cur)), estimate_w = TRUE)
 ancova_fit <- run_model(mixture_model, data)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+```
 
+3. Power prior with fixed $w$
+
+```{r}
 ## Fixed power prior
-
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-power_model <- build_ancova_model("power")
-save(power_model, file = "ancova_power_prior.RData")
 ancova_fit <- run_model(power_model, data)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2"))
+```
 
+4. Unnormalized power prior
+
+```{r}
 ## Random power prior
 
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = FALSE)
 ancova_fit <- run_model(power_model, data)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+```
 
-## Normalized power prior with path sampling
+5. Normalized power prior using path sampling
+
+```{r}
+## Normalized power prior using path sampling
 
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
 ancova_fit <- run_model(power_model, data)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+```
 
+6. Normalized power prior using exact closed form
+
+```{r}
 ## Normalized power prior with exact constant
 
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = TRUE)
 ancova_fit <- run_model(power_model, data)
-
-
-# ancova_path_dt <- build_ancova_path_data(data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, wknot = 0.5)
-# ancova_path_model <- build_ancova_path_model()
-# save(ancova_path_model, file = "ancova_path_sampling.RData")
-# ancova_path_fit <- ancova_path_integrate(ancova_path_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, iter = 2000, chains = 1)
-
-
-#fit_conj_mp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "mixture", chains = 4)
-#fit_conj_pp <- run_ancova_conjugate(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, prior_type = "power", estimate_w = 0, chains = 4)
-#extract_pars(fit_conj_pp, "treatment")
-#lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_hst)
+stan_trace(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
+pairs(ancova_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"))
 ```
+
+7. ANCOVA
+
+
+Path sampling和$\log C(w)$实际取值的比较：
+
+
+```{r}
+library(mvtnorm)
+w <- (0:100/100)
+n <- 200
+p <- 3
+logCfunc <- function (wi) {
+  -0.5*p*w*log(2*pi) - 0.5*w*log() - 0.5*p*log(w) + dmvnorm(beta_hat, beta_hat, (1/wi+n)**, log = T)
+}
+\log C(w)=const - \frac{pw}{2}\log 2\pi-\frac{w}{2}\log |\hat\sigma^2(X_{hst}^TX_{hst})^{-1})|-\frac{p}{2}\log w+\log N(\hat\beta_{hst};\hat\beta_{hst},(w^{-1}+n)\hat\sigma^2(X_{hst}^TX_{hst})^{-1})
+plot(knots$wknots, knots$lgCknots, xlab = "w", ylab = "log C(w)", type = "l", col = "red", lwd = 1.5, main = "Performance of path sampling")
+lines(w, logC, col = "blue", lwd = 1.5)
+```
+
 
 <!-- # Backup Code -->
 
