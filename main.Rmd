@@ -106,7 +106,7 @@ $$p_{pp}(\beta|w)\propto N\left(\hat\beta_{hst},w^{-1}\hat\sigma^2(X_{hst}^TX_{h
 在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\beta)=\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1}).$$
 
-此时，若考虑$w$为随机变量，则$C(w)=(2\pi\sigma^2)^{-nw/2}\exp\{-(n-p)w/2\}(1+nw)^{-p/2}$有显式表达式，可以用于评估path sampling算法的精确度。
+此时，若考虑$w$为随机变量，则$\log C(w)=const - \frac{pw}{2}\log 2\pi-\frac{w}{2}\log |\hat\sigma^2(X_{hst}^TX_{hst})^{-1})|-\frac{p}{2}\log w+\log N(\hat\beta_{hst};\hat\beta_{hst},(w^{-1}+n)\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$有显式表达式，可以用于评估path sampling算法的精确度。
 
 <!-- ## 肿瘤项目 -->
 
@@ -122,7 +122,7 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例，以及样本量$n=300$分配，治疗对照组的分配比均为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.4, -0.2, 0, 0.2, 0.4$。
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例，以及样本量$n=300$分配，治疗对照组的分配比均为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6$。
 
 
 <!-- #### MMRM模型 -->
@@ -164,38 +164,32 @@ run_model <- function(model, data,
 }
 
 # --- Util: Path sampling ---
-build_ancova_path_data <- function(df_hst, formula, wknot = NULL,
-                                   beta_vag = NULL, scale_vag = NULL,
-                                   a_vag = NULL, b_vag = NULL) {
+build_ancova_path_data <- function(df_hst, formula,
+                                   beta_vag = NULL, Sigma_vag = NULL) {
   des_hst <- mk_design(df_hst, formula)
-  hist_info_mp <- nig_from_history(des_hst$X, des_hst$Y)
-    
+  
+  # historical informative prior (scaled by a0)
+  fit_hst <- lm(formula, df_hst)
+  beta_hst <- coef(fit_hst)
+  L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
+  
+  # vague prior
   if (is.null(beta_vag)) {
-    beta_vag <- hist_info_mp$beta
+    beta_vag <- beta_hst
   }
-  if (is.null(scale_vag)) {
-    L_Sigma_vag <- sqrt(nrow(des_hst$X))*hist_info_mp$L_Sigma
+  if (is.null(Sigma_vag)) {
+    L_Sigma_vag <- sqrt(nrow(df_hst))*L_Sigma_hst
   } else {
-    L_Sigma_vag <- t(chol(scale_vag))
-  }
-  if (is.null(a_vag)) {
-    a_vag <- 1/2
-  }
-  if (is.null(b_vag)) {
-    b_vag <- 1/2*hist_info_mp$RSS
+    L_Sigma_vag <- t(chol(Sigma_vag))
   }
 
   list(
     cols = des_hst$cols,
-    wknot = wknot,
-    n_hst = nrow(des_hst$X),
-    p_hst = ncol(des_hst$X),
-    Y_hst = des_hst$Y,
-    X_hst = des_hst$X,
+    p = ncol(des_hst$X),
+    beta_hst = beta_hst,
+    L_Sigma_hst = L_Sigma_hst,
     beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag,
-    a_vag = a_vag,
-    b_vag = b_vag
+    L_Sigma_vag = L_Sigma_vag
   )
 }
 
@@ -206,27 +200,27 @@ build_ancova_path_model <- function() {
 }
 
 ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2,
-                                  beta_vag = NULL, scale_vag = NULL,
-                                  a_vag = NULL, b_vag = NULL,
-                                  iter = 2000, burnin = iter/2, chains = 1, seed = 123, 
+                                  beta_vag = NULL, Sigma_vag = NULL,
+                                  maxiter = 50000, chains = 1, seed = 123, 
                                   refresh = 0, save_warmup = FALSE) {
   K <- length(wknots)
   mlls <- rep(NA, K)
+  ancova_path_dt <- build_ancova_path_data(df_hst, formula,
+                                           beta_vag, Sigma_vag)
   
   for (i in 1:K) {  # Consider use foreach here
-    ancova_path_dt <- build_ancova_path_data(df_hst, formula, wknots[i],
-                                             beta_vag, scale_vag,
-                                             a_vag, b_vag)
+    ancova_path_dt$wknot <- wknots[i]
+    iter <- max(ceiling(maxiter^(1-wknots[i])), 2000)
     fit <- run_model(model, ancova_path_dt,
-                     iter, iter/2, chains, seed, 
+                     iter, round(iter/2), chains, seed, 
                      refresh = refresh,
                      save_warmup = save_warmup)
     mlls[i] <- mean(extract(fit$fit)$ll)
-    cat(sprintf("Knot %i has finished.\n", i))
+    cat(sprintf("Knot %i has finished, %i MCMC samples have been drawn.\n", i, iter))
   }
-  dvec <- c(wknots[1], diff(wknots))
-  lgCknots <- cumsum(dvec*mlls)
-  return(lgCknots)
+  dvec <- diff(wknots)
+  lgCknots <- c(0, cumsum(dvec*(mlls[1:(K-1)]+mlls[2:K])))
+  return(list(wknots = wknots, lgCknots = lgCknots))
 }
 
 # --- Build Stan data ---
@@ -236,12 +230,10 @@ build_ancova_data <- function(df_cur, df_hst, formula,
                               wknots = c(0, 1), lgCknots = c(0, 0), exact_constant = TRUE) {
   
   des_cur <- mk_design(df_cur, formula)
-  des_hst <- mk_design(df_hst, formula)
   
   # historical informative prior (scaled by a0)
   fit_hst <- lm(formula, df_hst)
   beta_hst <- coef(fit_hst)
-  sigma2_hst <- sigma(fit_hst)^2
   L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
   
   # vague prior
@@ -260,10 +252,7 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     p = ncol(des_cur$X),
     Y = des_cur$Y,
     X = des_cur$X,
-    n_hst = nrow(des_hst$X),
-    p_hst = ncol(des_hst$X),
     beta_hst = beta_hst,
-    sigma2_hst = sigma2_hst,
     L_Sigma_hst = L_Sigma_hst,
     beta_vag = beta_vag,
     L_Sigma_vag = L_Sigma_vag,
@@ -310,8 +299,13 @@ hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseli
 data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst, 
                        treatment = treatment_hst, 
                        hba1c = hba1c_hst)
+ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
+save(ancova_ps_model, file = "ancova_ps.RData")
+knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
+save("knots", "data_hst", file = "Historical.RData")
+
 ## Current data generation
-delta <- 0
+delta <- -0.4
 treatment <- rbinom(n_cur, 1, 0.5)
 hba1c_baseline <- rnorm(n_cur, 45, 0.5)
 e <- rnorm(n_cur, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
@@ -327,7 +321,7 @@ ancova_fit <- run_model(mixture_model, data)
 
 ## Random mixture prior
 
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE)
+data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, beta_vag = coef(lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_cur)), estimate_w = TRUE)
 ancova_fit <- run_model(mixture_model, data)
 
 ## Fixed power prior
@@ -344,7 +338,7 @@ ancova_fit <- run_model(power_model, data)
 
 ## Normalized power prior with path sampling
 
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE)
+data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
 ancova_fit <- run_model(power_model, data)
 
 ## Normalized power prior with exact constant

@@ -18,10 +18,7 @@ data {
   matrix[n, p] X;
 
   // Historical prior
-  int<lower=1> n_hst;
-  int<lower=1> p_hst;
   vector[p] beta_hst;
-  real<lower=0> sigma2_hst;
   matrix[p, p] L_Sigma_hst;
 
   // Baseline (vague) prior
@@ -39,6 +36,10 @@ data {
   vector<lower=0, upper=1>[K] wknots;
   vector[K] lgCknots;
 }
+transformed data {
+  matrix[p, p] Sigma_hst = L_Sigma_hst * L_Sigma_hst';
+  matrix[p, p] Sigma_vag = L_Sigma_vag * L_Sigma_vag';
+}
 parameters {
   vector[p] beta;
   real<lower=0> sigma2;
@@ -53,7 +54,9 @@ model {
   if (estimate_w == 1) w ~ beta(1, 1);
 
   // Optional normalization
-  real lgC = normalization*(exact_constant*(-w_eff*(n_hst/2*log(2*pi()*sigma2_hst)+(n_hst-p_hst)/2)-p_hst/2*log1p(n_hst*w_eff)) + (1-exact_constant)*interpolateC(w_eff, K, wknots, lgCknots));
+  real lgC = normalization*(exact_constant*(-0.5*w_eff*p*log(2*pi())-0.5*w_eff*log(determinant(Sigma_hst))
+               -0.5*p*log(w_eff)+multi_normal_lpdf(beta_hst | beta_vag, Sigma_hst/w_eff+Sigma_vag)) 
+               + (1-exact_constant)*interpolateC(w_eff, K, wknots, lgCknots));
 
   // Power prior
   target += w_eff * multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst)
