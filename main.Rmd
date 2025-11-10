@@ -281,8 +281,13 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。历史数据和分析数据按照2:1的比例分配，其中分析数据的样本量$n=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.4, \gamma = 0.1, \sigma_Y = 0.5, \sigma=0.81$，此外，$\delta = -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6$。
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=82$，历史数据的样本量$n_{hst}=118$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应的回归$R^2=0.09$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。此外，取$\delta = -0.8, -0.6, -0.4, -0.2, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
 
+``` {r echo=TRUE}
+# --- Sample size estimation ---
+library(pwrss)
+power.t.regression(beta = 0.6, sd.predictor = 0.5, k.total = 2, power = 0.8, alpha = 0.025, alternative = "one.sided")
+```
 
 <!-- #### MMRM模型 -->
 
@@ -300,29 +305,31 @@ ANCOVA模型的模拟研究主要考虑以下几种信息先验方法：
 
 在模拟研究中，对于点估计和区间估计，比较bias、RMSE、confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power。 
 
-以下给出上述六种方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度（trace plot通过比较各个chain的参数抽样分布来检查收敛性，pairs plot中若出现黄色和红色的散点则需要注意抽样的收敛性，在一些hierarchical models可能会出现以上问题，此时应通过non-centered parameterization处理模型）：
+以下给出上述六种方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度（trace plot通过比较各个chain的参数抽样分布来检查收敛性，pair plot中若出现黄色和红色的散点则需要注意抽样的收敛性，在一些hierarchical models可能会出现以上问题，此时应通过non-centered parameterization处理模型）：
 
-``` {r include = FALSE}
+```{r include=FALSE}
 # # --- Example run ---
-n <- 300
-n_hst <- 200
-n_cur <- n - n_hst
+n <- 200
+n_cur <- 82
+n_hst <- n - n_cur
 alpha <- 0.5
-tau <- 0.4
+tau <- 0.6
 gamma <- 0.1
-# 
-# ## Historical data generation
+
+## Historical data generation
+# set.seed(123)
 # treatment_hst <- rbinom(n_hst, 1, 0.5)
 # hba1c_baseline_hst <- rnorm(n_hst, 45, 0.5)
-# e_hst <- rnorm(n_hst, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
+# e_hst <- rnorm(n_hst, sd = sqrt(1 - var(hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst)))
 # hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst + e_hst
 # data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst,
 #                        treatment = treatment_hst,
 #                        hba1c = hba1c_hst)
-# ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
-# save(ancova_ps_model, file = "ancova_ps.RData")
+# #ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
+# #save(ancova_ps_model, file = "ancova_ps.RData")
+# load("ancova_ps.RData")
 # knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-#save("knots", "data_hst", file = "Historical.RData")
+# save("knots", "data_hst", file = "Historical.RData")
 
 load("Historical.RData")
 
@@ -417,9 +424,10 @@ load("ancova_power_prior.RData")
 
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect and residual variance under the fixed mixture prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Fixed mixture prior
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-ancova_fmp_fit <- run_model(mixture_model, data, save_warmup = TRUE)
-save(ancova_fmp_fit, file = "ancova_fmp_fit")
+#data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
+#ancova_fmp_fit <- run_model(mixture_model, data, save_warmup = TRUE)
+#save(ancova_fmp_fit, file = "ancova_fmp_fit.RData")
+load("ancova_fmp_fit.RData")
 traceplot(ancova_fmp_fit$fit, pars = c("beta[3]", "sigma2"), inc_warmup = TRUE, nrow = 2) + ggtitle("Trace plot for fixed mixture prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -431,9 +439,10 @@ pairs(ancova_fmp_fit$fit, pars = c("beta[3]", "sigma2"), main = "Pair plot for f
 
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and weight under the random mixture prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Random mixture prior
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, beta_vag = coef(lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_cur)), estimate_w = TRUE)
-ancova_rmp_fit <- run_model(mixture_model, data, save_warmup = TRUE)
-save(ancova_rmp_fit, file = "ancova_rmp_fit")
+#data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, beta_vag = coef(lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_cur)), estimate_w = TRUE)
+#ancova_rmp_fit <- run_model(mixture_model, data, save_warmup = TRUE)
+#save(ancova_rmp_fit, file = "ancova_rmp_fit.RData")
+load("ancova_rmp_fit.RData")
 traceplot(ancova_rmp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for random mixture prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -445,9 +454,10 @@ pairs(ancova_rmp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair p
 
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect and residual variance under the fixed power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Fixed power prior
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
-ancova_fpp_fit <- run_model(power_model, data, save_warmup = TRUE)
-save(ancova_fpp_fit, file = "ancova_fpp_fit")
+# data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
+# ancova_fpp_fit <- run_model(power_model, data, save_warmup = TRUE)
+# save(ancova_fpp_fit, file = "ancova_fpp_fit.RData")
+load("ancova_fpp_fit.RData")
 traceplot(ancova_fpp_fit$fit, pars = c("beta[3]", "sigma2"), inc_warmup = TRUE, nrow = 2) + ggtitle("Trace plot for fixed power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -460,9 +470,10 @@ pairs(ancova_fpp_fit$fit, pars = c("beta[3]", "sigma2"), main = "Pair plot for f
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and temperature under the unnormalized power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Random power prior
 
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = FALSE)
-ancova_upp_fit <- run_model(power_model, data, save_warmup = TRUE)
-save(ancova_upp_fit, file = "ancova_upp_fit")
+# data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = FALSE)
+# ancova_upp_fit <- run_model(power_model, data, save_warmup = TRUE)
+# save(ancova_upp_fit, file = "ancova_upp_fit.RData")
+load("ancova_upp_fit.RData")
 traceplot(ancova_upp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for unnormalized power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -475,9 +486,10 @@ pairs(ancova_upp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair p
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and temperature under the approximately normalized power prior using path sampling. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Normalized power prior using path sampling
 
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
-ancova_anpp_fit <- run_model(power_model, data, save_warmup = TRUE)
-save(ancova_anpp_fit, file = "ancova_anpp_fit")
+# data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
+# ancova_anpp_fit <- run_model(power_model, data, save_warmup = TRUE)
+# save(ancova_anpp_fit, file = "ancova_anpp_fit.RData")
+load("ancova_anpp_fit.RData")
 traceplot(ancova_anpp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for approximately normalized power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -490,9 +502,10 @@ pairs(ancova_anpp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair 
 ```{r fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and temperature under the normalized power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 ## Normalized power prior with exact constant
 
-data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = TRUE)
-ancova_npp_fit <- run_model(power_model, data, save_warmup = TRUE)
-save(ancova_npp_fit, file = "ancova_npp_fit")
+# data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = TRUE)
+# ancova_npp_fit <- run_model(power_model, data, save_warmup = TRUE)
+# save(ancova_npp_fit, file = "ancova_npp_fit.RData")
+load("ancova_npp_fit.RData")
 traceplot(ancova_npp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for normalized power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
 ```
 
@@ -511,15 +524,16 @@ lm_fits <- list(lm(I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, data_
 tabulize(stan_fits, lm_fits,
          model_names = c("FMP", "RMP", "FPP", "UPP", "ANPP", "NPP", "ANCOVA"),
          treatment_pars = "treatment",
-         effect_hst = 0.4,
-         effect_cur = 0.4,
+         effect_hst = 0.6,
+         effect_cur = 0.6,
          caption = "Overall comparison of results from the Bayesian models and ANCOVA. There is no prior-data conflict in this example. The point estimate and 95% confidence interval for treatment effect and weight/temperature parameter are shown in the last two columns.")
 ```
 
 ```{r fig.cap="Comparison of the path sampling approximated normalization constant (red) and the closed-form normalization constant (blue)."}
 library(mvtnorm)
 w <- (0:200/200)^2
-n <- nrow(data_hst)
+data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
+n <- data$n
 p <- data$p
 beta_hst <- data$beta_hst
 beta_vag <- data$beta_vag
