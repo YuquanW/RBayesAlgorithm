@@ -16,152 +16,13 @@ date: "2025-10-22"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 7, fig.align='center')
-```
-
-```{r include=FALSE}
 library(rstan)
 library(ggplot2)
 library(dplyr)
 library(knitr)
 library(kableExtra)
 library(purrr)
-rstan_options(auto_write = TRUE)
-options(mc.cores = min(parallel::detectCores()-1, 8))
-
-# --- Util: Build design matrices ---
-mk_design <- function(df, formula) {
-  X <- model.matrix(formula, df)
-  Y <- model.response(model.frame(formula, df))
-  list(Y = as.numeric(Y), X = X, cols = colnames(X))
-}
-
-# --- Util: Run Stan model ---
-
-run_model <- function(model, data,
-                      iter = 5000, burnin = iter/2, chains = 4, seed = 123, refresh = max(iter/10, 1), save_warmup = FALSE) {
-  suppressWarnings({
-  fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, refresh = refresh, save_warmup = save_warmup)
-  })
-  return(list(fit = fit, data = data))
-}
-
-# --- Util: Path sampling ---
-build_ancova_path_data <- function(df_hst, formula,
-                                   beta_vag = NULL, Sigma_vag = NULL) {
-  des_hst <- mk_design(df_hst, formula)
-  
-  # historical informative prior (scaled by a0)
-  fit_hst <- lm(formula, df_hst)
-  beta_hst <- coef(fit_hst)
-  L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
-  
-  # vague prior
-  if (is.null(beta_vag)) {
-    beta_vag <- beta_hst
-  }
-  if (is.null(Sigma_vag)) {
-    L_Sigma_vag <- sqrt(nrow(df_hst))*L_Sigma_hst
-  } else {
-    L_Sigma_vag <- t(chol(Sigma_vag))
-  }
-
-  list(
-    cols = des_hst$cols,
-    p = ncol(des_hst$X),
-    beta_hst = beta_hst,
-    L_Sigma_hst = L_Sigma_hst,
-    beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag
-  )
-}
-
-build_ancova_path_model <- function() {
-  stan_file <- "ancova_conj_path.stan"
-  model <- stan_model(file = stan_file)
-  return(model)
-}
-
-ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2,
-                                  beta_vag = NULL, Sigma_vag = NULL,
-                                  maxiter = 50000, chains = 1, seed = 123, 
-                                  refresh = 0, save_warmup = FALSE) {
-  K <- length(wknots)
-  mlls <- rep(NA, K)
-  ancova_path_dt <- build_ancova_path_data(df_hst, formula,
-                                           beta_vag, Sigma_vag)
-  
-  for (i in 1:K) {  # Consider use foreach here
-    ancova_path_dt$wknot <- wknots[i]
-    iter <- max(ceiling(maxiter^(1-wknots[i])), 2000)
-    fit <- run_model(model, ancova_path_dt,
-                     iter, round(iter/2), chains, seed, 
-                     refresh = refresh,
-                     save_warmup = save_warmup)
-    mlls[i] <- mean(extract(fit$fit)$ll)
-    cat(sprintf("Knot %i has finished, %i MCMC samples have been drawn.\n", i, iter))
-  }
-  dvec <- diff(wknots)
-  lgCknots <- c(0, cumsum(dvec*(mlls[1:(K-1)]+mlls[2:K])/2))
-  return(list(wknots = wknots, lgCknots = lgCknots))
-}
-
-# --- Build Stan data ---
-build_ancova_data <- function(df_cur, df_hst, formula,
-                              w_fixed = 0.5, estimate_w = FALSE, normalization = TRUE,
-                              beta_vag = NULL, Sigma_vag = NULL,
-                              wknots = c(0, 1), lgCknots = c(0, 0), exact_constant = TRUE) {
-  
-  des_cur <- mk_design(df_cur, formula)
-  
-  # historical informative prior (scaled by a0)
-  fit_hst <- lm(formula, df_hst)
-  beta_hst <- coef(fit_hst)
-  L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
-  
-  # vague prior
-  if (is.null(beta_vag)) {
-    beta_vag <- beta_hst
-  }
-  if (is.null(Sigma_vag)) {
-    L_Sigma_vag <- sqrt(nrow(df_hst))*L_Sigma_hst
-  } else {
-    L_Sigma_vag <- t(chol(Sigma_vag))
-  }
-
-  list(
-    cols = des_cur$cols,
-    n = nrow(des_cur$X),
-    p = ncol(des_cur$X),
-    Y = des_cur$Y,
-    X = des_cur$X,
-    beta_hst = beta_hst,
-    L_Sigma_hst = L_Sigma_hst,
-    beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag,
-    w_fixed = w_fixed,
-    estimate_w = estimate_w,
-    normalization = normalization,
-    K = length(wknots),
-    wknots = wknots,
-    lgCknots = lgCknots,
-    exact_constant = exact_constant
-  )
-}
-
-# --- Build Stan model ---
-build_ancova_model <- function(prior_type = c("mixture", "power")) {
-  prior_type <- match.arg(prior_type)
-  stan_file <- ifelse(prior_type == "mixture", "ancova_conj_mp.stan", "ancova_conj_pp.stan")
-  model <- stan_model(file = stan_file)
-  return(model)
-}
-# 
-# # --- Extract treatment effect posterior ---
-# extract_pars <- function(fit_obj, eff_cols) {
-#   sm <- rstan::summary(fit_obj$fit, pars = "beta")$summary
-#   idx <- match(eff_cols, fit_obj$dat$cols)
-#   sm[idx, c("mean", "2.5%", "50%", "97.5%", "n_eff", "Rhat")]
-# }
+source("Utils.R")
 ```
 
 # Introduction {#sec1}
@@ -283,7 +144,7 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=82$，历史数据的样本量$n_{hst}=118$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应的回归$R^2=0.09$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。此外，取$\delta = -0.8, -0.6, -0.4, -0.2, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=82$，历史数据的样本量$n_{hst}=118$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应的回归$R^2=0.09$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。取$\delta = -0.8, -0.6, -0.4, -0.2, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
 
 ``` {r echo=TRUE}
 # --- Sample size estimation ---
@@ -291,7 +152,9 @@ library(pwrss)
 power.t.regression(beta = 0.6, sd.predictor = 0.5, k.total = 2, power = 0.8, alpha = 0.025, alternative = "one.sided")
 ```
 
-此外，将在无、中、高prior-data conflict场景下，分别变化混合先验的权重参数和幂先验的温度参数，来观察type I error和power随这些参数的变化情况。
+此外，模拟研究还将分别变化混合先验的权重参数和幂先验的温度参数，来观察type I error和power随这些参数的变化情况。
+
+最后，将基于实际应用场景，展示如何通过分别变化混合先验的权重参数和幂先验的温度参数来进行敏感性分析。
 
 <!-- #### MMRM模型 -->
 
@@ -308,6 +171,8 @@ ANCOVA模型的模拟研究考虑以下几种信息先验方法：
 7. ANCOVA with current data.
 
 在模拟研究中，对于点估计和区间估计，比较bias、RMSE、credible/confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power。 
+
+#### 试运行结果展示
 
 以下给出ANPP和NPP方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度。图\@ref(fig:fig4-1) - \@ref(fig:fig4-4)展示试运行结果的MCMC算法收敛情况（trace plot通过比较各个chain的抽样分布来检查收敛性，pair plot中若出现黄色和红色的散点则需要注意抽样的收敛性，在一些hierarchical models可能会出现以上问题，此时应通过non-centered parameterization处理模型）：
 
@@ -554,6 +419,18 @@ lines(w, logC, col = "blue", lwd = 2)
 legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "blue"), lty = 1, lwd = 2)
 ```
 
+#### 统计性能比较
+
+本节比较$\delta = -0.6, -0.3, 0, 0.3, 0.6$时各方法的统计性能。
+
+当$\delta=-0.6$时，分析数据的真实处理效应为0，此时对应的power即为type I error。
+
+
+#### 试验设计阶段的先验参数选取
+
+
+
+#### 基于实际场景的敏感性分析展示
 
 <!-- # Backup Code -->
 
