@@ -144,12 +144,14 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=82$，历史数据的样本量$n_{hst}=118$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应的回归$R^2=0.09$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。取$\delta = -0.8, -0.6, -0.4, -0.2, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
+其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=56$，历史数据的样本量$n_{hst}=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应ANCOVA的$R^2=0.13$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。取$\delta = -0.6, -0.55, -0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
 
 ``` {r echo=TRUE}
 # --- Sample size estimation ---
 library(pwrss)
-power.t.regression(beta = 0.6, sd.predictor = 0.5, k.total = 2, power = 0.8, alpha = 0.025, alternative = "one.sided")
+gamma <- 0.1
+sd_baseline <- 0.5
+power.t.regression(beta = 0.6, sd.predictor = 0.5, sd.outcome = sqrt(1+gamma^2*sd_baseline^2-(1+gamma)^2*sd_baseline^2), k.total = 2, power = 0.8, alpha = 0.025, alternative = "one.sided")
 ```
 
 此外，模拟研究还将分别变化混合先验的权重参数和幂先验的温度参数，来观察type I error和power随这些参数的变化情况。
@@ -178,24 +180,25 @@ ANCOVA模型的模拟研究考虑以下几种信息先验方法：
 
 ```{r include=FALSE}
 # # --- Example run ---
-n <- 200
-n_cur <- 82
+n <- 156
+n_cur <- 56
 n_hst <- n - n_cur
 alpha <- 0.5
 tau <- 0.6
 gamma <- 0.1
 
-## Historical data generation
+# Historical data generation
 # set.seed(123)
-# treatment_hst <- rbinom(n_hst, 1, 0.5)
-# hba1c_baseline_hst <- rnorm(n_hst, 45, 0.5)
-# e_hst <- rnorm(n_hst, sd = sqrt(1 - var(hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst)))
+# treatment_hst <- c(rep(1, n_hst/2), rep(0, n_hst/2))
+# hba1c_baseline_hst <- rnorm(n_hst)
+# hba1c_baseline_hst <- scale(hba1c_baseline_hst)*0.5 + 45
+# e_hst <- rnorm(n_hst, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
 # hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst + e_hst
 # data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst,
 #                        treatment = treatment_hst,
 #                        hba1c = hba1c_hst)
-# #ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
-# #save(ancova_ps_model, file = "ancova_ps.RData")
+# # ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
+# # save(ancova_ps_model, file = "ancova_ps.RData")
 # load("ancova_ps.RData")
 # knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
 # save("knots", "data_hst", file = "Historical.RData")

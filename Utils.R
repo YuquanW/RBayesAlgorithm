@@ -1,5 +1,3 @@
-options(mc.cores = min(parallel::detectCores()-1, 8))
-
 # --- Util: Build design matrices ---
 mk_design <- function(df, formula) {
   X <- model.matrix(formula, df)
@@ -10,9 +8,9 @@ mk_design <- function(df, formula) {
 # --- Util: Run Stan model ---
 
 run_model <- function(model, data,
-                      iter = 5000, burnin = iter/2, chains = 4, seed = 123, refresh = max(iter/10, 1), save_warmup = FALSE) {
+                      iter = 5000, burnin = iter/2, chains = 4, seed = 123, cores = getOption("mc.cores", 1L), refresh = max(iter/10, 1), save_warmup = FALSE) {
   suppressWarnings({
-    fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, refresh = refresh, save_warmup = save_warmup)
+    fit <- sampling(model, data, iter = iter, warmup = burnin, chains = chains, seed = seed, cores = cores, refresh = refresh, save_warmup = save_warmup)
   })
   return(list(fit = fit, data = data))
 }
@@ -133,12 +131,13 @@ yield_stan_res <- function(fit_obj, eff_col, beta0) {
   sm <- summary(fit_obj$fit, pars = "beta")$summary
   iterations <- extract(fit_obj$fit, pars = "beta")$beta
   idx <- match(eff_col, fit_obj$dat$cols)
-  summary_res <- sm[idx, c("mean", "2.5%", "97.5%")]
+  summary_res <- sm[idx, c("mean", "2.5%", "97.5%", "Rhat")]
   c("Estimate" = summary_res[1],
     "CI.length" = summary_res[3] - summary_res[2],
     "Coverage" = 1*(beta0 >= summary_res[2] & beta0 <= summary_res[3]),
     "Rejection" = 1*(mean(iterations[, idx]<=0) < 0.025),
-    "PP" = mean(iterations[, idx]<=0))
+    "PP" = mean(iterations[, idx]<=0),
+    "Rhat" = summary_res[4])
 }
 
 yield_lm_res <- function(fit_obj, eff_col, beta0) {
@@ -148,8 +147,9 @@ yield_lm_res <- function(fit_obj, eff_col, beta0) {
   c("Estimate" = summary_res[1],
     "CI.length" = ub - lb,
     "Coverage" = 1*(beta0 >= lb & beta0 <= ub),
-    "Rejection" = 1*(summary_res[4] < 0.05),
-    "P.value" = summary_res[4]/2)
+    "Rejection" = 1*(summary_res[4]/2*(summary_res[1]>0)+(1-summary_res[4]/2)*(summary_res[1]<=0) < 0.025),
+    "P.value" = summary_res[4]/2*(summary_res[1]>0)+(1-summary_res[4]/2)*(summary_res[1]<=0),
+    "Rhat" = NA)
 }
 
 write_res <- function(stan_fits, lm_fits, model_names, eff_col, beta0, delta) {
@@ -158,7 +158,7 @@ write_res <- function(stan_fits, lm_fits, model_names, eff_col, beta0, delta) {
   if (is.null(model_names)) {
     model_names <- paste0("M", 1:(n_stan + n_fit))
   }
-  res_matrix <- matrix(NA, nrow = n_stan+n_fit, ncol = 5)
+  res_matrix <- matrix(NA, nrow = n_stan+n_fit, ncol = 6)
   
   for (i in 1:n_stan) {
     stan_fit_i <- stan_fits[[i]]
@@ -170,44 +170,45 @@ write_res <- function(stan_fits, lm_fits, model_names, eff_col, beta0, delta) {
   }
   rownames(res_matrix) <- model_names
   write.table(data.frame(t(res_matrix[, 1])), 
-              file = sprintf("ancova_estimate_delta%.2f.txt", delta), 
-              append = file.exists(sprintf("ancova_estimate_delta%.2f.txt", delta)), 
+              file = sprintf("./simres/ancova_estimate_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_estimate_delta%.2f.txt", delta)), 
               quote = FALSE,
               sep = "\t",
               row.names = F,
-              col.names = !file.exists(sprintf("ancova_estimate_delta%.2f.txt", delta)))
+              col.names = !file.exists(sprintf("./simres/ancova_estimate_delta%.2f.txt", delta)))
   write.table(data.frame(t(res_matrix[, 2])), 
-              file = sprintf("ancova_cilength_delta%.2f.txt", delta), 
-              append = file.exists(sprintf("ancova_cilength_delta%.2f.txt", delta)), 
+              file = sprintf("./simres/ancova_cilength_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_cilength_delta%.2f.txt", delta)), 
               quote = FALSE,
               sep = "\t",
               row.names = F,
-              col.names = !file.exists(sprintf("ancova_cilength_delta%.2f.txt", delta)))
+              col.names = !file.exists(sprintf("./simres/ancova_cilength_delta%.2f.txt", delta)))
   write.table(data.frame(t(res_matrix[, 3])), 
-              file = sprintf("ancova_coverage_delta%.2f.txt", delta), 
-              append = file.exists(sprintf("ancova_coverage_delta%.2f.txt", delta)), 
+              file = sprintf("./simres/ancova_coverage_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_coverage_delta%.2f.txt", delta)), 
               quote = FALSE,
               sep = "\t",
               row.names = F,
-              col.names = !file.exists(sprintf("ancova_coverage_delta%.2f.txt", delta)))
+              col.names = !file.exists(sprintf("./simres/ancova_coverage_delta%.2f.txt", delta)))
   write.table(data.frame(t(res_matrix[, 4])), 
-              file = sprintf("ancova_rejection_delta%.2f.txt", delta), 
-              append = file.exists(sprintf("ancova_rejection_delta%.2f.txt", delta)), 
+              file = sprintf("./simres/ancova_rejection_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_rejection_delta%.2f.txt", delta)), 
               quote = FALSE,
               sep = "\t",
               row.names = F,
-              col.names = !file.exists(sprintf("ancova_rejection_delta%.2f.txt", delta)))
+              col.names = !file.exists(sprintf("./simres/ancova_rejection_delta%.2f.txt", delta)))
   write.table(data.frame(t(res_matrix[, 5])), 
-              file = sprintf("ancova_pvalue_delta%.2f.txt", delta), 
-              append = file.exists(sprintf("ancova_pvalue_delta%.2f.txt", delta)), 
+              file = sprintf("./simres/ancova_pvalue_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_pvalue_delta%.2f.txt", delta)), 
               quote = FALSE,
               sep = "\t",
               row.names = F,
-              col.names = !file.exists(sprintf("ancova_pvalue_delta%.2f.txt", delta)))
+              col.names = !file.exists(sprintf("./simres/ancova_pvalue_delta%.2f.txt", delta)))
+  write.table(data.frame(t(res_matrix[, 6])), 
+              file = sprintf("./simres/ancova_rhat_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres/ancova_rhat_delta%.2f.txt", delta)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres/ancova_rhat_delta%.2f.txt", delta)))
 }
-
-# --- Visualization ---
-
-
-
-
