@@ -205,3 +205,9 @@ write_res <- function(stan_fits, lm_fits, model_names, eff_col, beta0, delta) {
               row.names = F,
               col.names = !file.exists(sprintf("ancova_pvalue_delta%.2f.txt", delta)))
 }
+
+# --- Visualization ---
+
+
+
+
