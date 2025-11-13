@@ -144,7 +144,7 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\delta$为分析数据与历史数据的效应差。分析数据的样本量$n=56$，历史数据的样本量$n_{hst}=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应ANCOVA的$R^2=0.13$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。取$\delta = -0.6, -0.55, -0.5, -0.45, -0.4, -0.35, -0.3, -0.25, -0.2, -0.15, -0.1, -0.05, 0$来评估存在 ($\delta\neq0$) 或不存在 ($\delta=0$) prior-data conflict下各方法的表现。
+其中，参数$\tau$为历史数据的治疗效应，$\beta=\tau+\delta$为当前研究的治疗效应。当前研究的样本量$n=56$，历史数据的样本量$n_{hst}=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应ANCOVA的$R^2=0.13$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。以0.05为步长将$\delta$从-0.6递增至0来评估prior-data conflict下各方法的表现。
 
 ``` {r echo=TRUE}
 # --- Sample size estimation ---
@@ -154,9 +154,22 @@ sd_baseline <- 0.5
 power.t.regression(beta = 0.6, sd.predictor = 0.5, sd.outcome = sqrt(1+gamma^2*sd_baseline^2-(1+gamma)^2*sd_baseline^2), k.total = 2, power = 0.8, alpha = 0.025, alternative = "one.sided")
 ```
 
-此外，模拟研究还将分别变化混合先验的权重参数和幂先验的温度参数，来观察type I error和power随这些参数的变化情况。
+此外，为了探索应用场景中，如何从统计模拟的角度给出合理的$w$，还将分别变化混合先验和幂先验的$w$，来观察type I error和power随$w$的变化情况。在模拟中同时记录deviance information criterion (DIC)来探索从信息准则角度使用DIC确定$w$的可能性 [@Spiegelhalter2002; @Ibrahim2012; @Ibrahim2015]。模拟主要考虑两种场景：
 
-最后，将基于实际应用场景，展示如何通过分别变化混合先验的权重参数和幂先验的温度参数来进行敏感性分析。
+* 场景一：type I error随$w$的变化，历史数据治疗效应$\tau=0.6$，当前研究无治疗效应；
+* 场景二：power随$w$的变化，历史数据和当前研究治疗效应均为$\tau=0.6$，但入组困难，power仅能达到0.7。
+
+场景二对应的样本量为
+
+``` {r echo=TRUE}
+# --- Sample size estimation ---
+library(pwrss)
+gamma <- 0.1
+sd_baseline <- 0.5
+power.t.regression(beta = 0.6, sd.predictor = 0.5, sd.outcome = sqrt(1+gamma^2*sd_baseline^2-(1+gamma)^2*sd_baseline^2), k.total = 2, power = 0.7, alpha = 0.025, alternative = "one.sided")
+```
+
+最后，将基于moderate prior-data conflict场景（$\delta = -0.3$），通过改变先验参数$w$进行敏感性分析。
 
 <!-- #### MMRM模型 -->
 
@@ -172,7 +185,7 @@ ANCOVA模型的模拟研究考虑以下几种信息先验方法：
 6. Normalized power prior (NPP) with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$ using exact $\log C(w)$ based on \@ref(eq:5);
 7. ANCOVA with current data.
 
-在模拟研究中，对于点估计和区间估计，比较bias、RMSE、credible/confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power。 
+在模拟研究中，对于点估计和区间估计，比较bias、RMSE、credible/confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power，其中Bayes方法在$P(\beta>0|D,D_{hst})>0.975$时拒绝原假设（等价于$\beta$的95%可信区间下界大于0）。
 
 #### 试运行结果展示
 
@@ -189,17 +202,21 @@ gamma <- 0.1
 
 # Historical data generation
 # set.seed(123)
-# treatment_hst <- c(rep(1, n_hst/2), rep(0, n_hst/2))
+# treatment_hst <- rep(c(1, 0), each = n_hst/2)
 # hba1c_baseline_hst <- rnorm(n_hst)
 # hba1c_baseline_hst <- scale(hba1c_baseline_hst)*0.5 + 45
-# e_hst <- rnorm(n_hst, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
+# X <- model.matrix(~ hba1c_baseline_hst + treatment_hst)
+# z <- rnorm(n_hst)
+# e_hst <- resid(lm(z ~ hba1c_baseline_hst + treatment_hst))
+# e_hst <- e_hst/sd(e_hst)*sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25)
 # hba1c_hst <- hba1c_baseline_hst + alpha + tau*treatment_hst + gamma*hba1c_baseline_hst + e_hst
 # data_hst <- data.frame(hba1c_baseline = hba1c_baseline_hst,
 #                        treatment = treatment_hst,
 #                        hba1c = hba1c_hst)
-# # ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
-# # save(ancova_ps_model, file = "ancova_ps.RData")
+# # # ancova_ps_model <- build_ancova_path_model()  # Build path sampling model
+# # # save(ancova_ps_model, file = "ancova_ps.RData")
 # load("ancova_ps.RData")
+# options(mc.cores = 8)
 # knots <- ancova_path_integrate(ancova_ps_model, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment)
 # save("knots", "data_hst", file = "Historical.RData")
 
@@ -208,8 +225,9 @@ load("Historical.RData")
 ## Current data generation
 set.seed(123)
 delta <- 0
-treatment <- rbinom(n_cur, 1, 0.5)
-hba1c_baseline <- rnorm(n_cur, 45, 0.5)
+treatment <- rep(c(1, 0), each = n_cur/2)
+hba1c_baseline <- rnorm(n_cur)
+hba1c_baseline <- scale(hba1c_baseline)*0.5 + 45
 e <- rnorm(n_cur, sd = sqrt(1 - tau^2*0.25 - (1+gamma)^2*0.25))
 hba1c <- hba1c_baseline + alpha + (tau + delta)*treatment + gamma*hba1c_baseline + e
 data_cur <- data.frame(hba1c_baseline, treatment, hba1c)
@@ -424,14 +442,12 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 #### 统计性能比较
 
-本节比较$\delta = -0.6, -0.3, 0, 0.3, 0.6$时各方法的统计性能。
-
-当$\delta=-0.6$时，分析数据的真实处理效应为0，此时对应的power即为type I error。
+本节比较$\delta$变化时各方法的统计性能。由于模拟次数为1000次，$\alpha=0.025$下的正常一类错误率范围约为0.015至0.035，功效范围为0.775至0.825。
 
 
 #### 试验设计阶段的先验参数选取
 
-
+本节的模拟试验旨在探索应用场景中，如何从统计模拟和信息准则的角度给出合适范围的$w$。
 
 #### 基于实际场景的敏感性分析展示
 

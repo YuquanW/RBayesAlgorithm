@@ -60,7 +60,7 @@ ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2
   ancova_path_dt <- build_ancova_path_data(df_hst, formula,
                                            beta_vag, Sigma_vag)
   
-  for (i in 1:K) {  # Consider use foreach here
+  for (i in 1:K) {  # Consider use parLapply here
     ancova_path_dt$wknot <- wknots[i]
     iter <- max(ceiling(maxiter^(1-wknots[i])), 2000)
     fit <- run_model(model, ancova_path_dt,
@@ -211,4 +211,122 @@ write_res <- function(stan_fits, lm_fits, model_names, eff_col, beta0, delta) {
               sep = "\t",
               row.names = F,
               col.names = !file.exists(sprintf("./simres/ancova_rhat_delta%.2f.txt", delta)))
+}
+
+# --- Yield simulation results 2 ---
+yield_stan_res2 <- function(fit_obj, eff_col, beta0) {
+  sm <- summary(fit_obj$fit, pars = "beta")$summary
+  iterations <- extract(fit_obj$fit, pars = "beta")$beta
+  idx <- match(eff_col, fit_obj$dat$cols)
+  summary_res <- sm[idx, c("mean", "2.5%", "97.5%", "Rhat")]
+  
+  y_hat <- drop(fit_obj$dat$X%*%sm[, "mean"])
+  sigma_hat <- summary(fit_obj$fit, pars = "sigma")$summary[, "mean"]
+  ll_mean <- summary(fit_obj$fit, pars = "ll")$summary[, "mean"]
+  dev_mean <- -2*ll_mean
+  dev_plug <- -2*sum(dnorm(fit_obj$dat$Y, y_hat, sigma_hat, log = T))
+  p_d <- dev_mean - dev_plug
+  dic <- dev_plug + 2*p_d
+  c("Rejection" = 1*(mean(iterations[, idx]<=0) < 0.025),
+    "PP" = mean(iterations[, idx]<=0),
+    "DIC" = dic)
+}
+
+write_res2 <- function(stan_fits, model_names, eff_col, beta0, delta, w_eff) {
+  n_stan <- length(stan_fits)
+  if (is.null(model_names)) {
+    model_names <- paste0("M", 1:n_stan)
+  }
+  res_matrix <- matrix(NA, nrow = n_stan, ncol = 3)
+  
+  for (i in 1:n_stan) {
+    stan_fit_i <- stan_fits[[i]]
+    res_matrix[i, ] <- yield_stan_res2(stan_fit_i, eff_col, beta0)
+  }
+  rownames(res_matrix) <- model_names
+  
+  write.table(data.frame(t(res_matrix[, 1])), 
+              file = sprintf("./simres2/ancova_rejection_delta%.2f_w%.2f.txt", delta, w_eff), 
+              append = file.exists(sprintf("./simres2/ancova_rejection_delta%.2f_w%.2f.txt", delta, w_eff)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres2/ancova_rejection_delta%.2f_w%.2f.txt", delta, w_eff)))
+  write.table(data.frame(t(res_matrix[, 2])), 
+              file = sprintf("./simres2/ancova_pvalue_delta%.2f_w%.2f.txt", delta, w_eff), 
+              append = file.exists(sprintf("./simres2/ancova_pvalue_delta%.2f_w%.2f.txt", delta, w_eff)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres2/ancova_pvalue_delta%.2f_w%.2f.txt", delta, w_eff)))
+  write.table(data.frame(t(res_matrix[, 3])), 
+              file = sprintf("./simres2/ancova_dic_delta%.2f_w%.2f.txt", delta, w_eff), 
+              append = file.exists(sprintf("./simres2/ancova_dic_delta%.2f_w%.2f.txt", delta, w_eff)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres2/ancova_dic_delta%.2f_w%.2f.txt", delta, w_eff)))
+}
+
+# --- Yield simulation results 3 ---
+yield_stan_res3 <- function(fit_obj, eff_col, beta0) {
+  sm <- summary(fit_obj$fit, pars = "beta")$summary
+  iterations <- extract(fit_obj$fit, pars = "beta")$beta
+  idx <- match(eff_col, fit_obj$dat$cols)
+  summary_res <- sm[idx, c("mean", "2.5%", "97.5%", "Rhat")]
+  
+  y_hat <- drop(fit_obj$dat$X%*%sm[, "mean"])
+  sigma_hat <- summary(fit_obj$fit, pars = "sigma")$summary[, "mean"]
+  ll_mean <- summary(fit_obj$fit, pars = "ll")$summary[, "mean"]
+  dev_mean <- -2*ll_mean
+  dev_plug <- -2*sum(dnorm(fit_obj$dat$Y, y_hat, sigma_hat, log = T))
+  p_d <- dev_mean - dev_plug
+  dic <- dev_plug + 2*p_d
+  c("Estimate" = summary_res[1],
+    "LB" = summary_res[2],
+    "UB" = summary_res[3],
+    "DIC" = dic)
+}
+
+write_res3 <- function(stan_fits, model_names, eff_col, beta0, delta, w_eff) {
+  n_stan <- length(stan_fits)
+  if (is.null(model_names)) {
+    model_names <- paste0("M", 1:n_stan)
+  }
+  res_matrix <- matrix(NA, nrow = n_stan, ncol = 4)
+  
+  for (i in 1:n_stan) {
+    stan_fit_i <- stan_fits[[i]]
+    res_matrix[i, ] <- yield_stan_res3(stan_fit_i, eff_col, beta0)
+  }
+  rownames(res_matrix) <- model_names
+  
+  write.table(data.frame(w = w_eff, t(res_matrix[, 1])), 
+              file = sprintf("./simres3/ancova_estimate_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres3/ancova_estimate_delta%.2f.txt", delta)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres3/ancova_estimate_delta%.2f.txt", delta)))
+  write.table(data.frame(w = w_eff, t(res_matrix[, 2])), 
+              file = sprintf("./simres3/ancova_lb_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres3/ancova_lb_delta%.2f.txt", delta)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres3/ancova_lb_delta%.2f.txt", delta)))
+  write.table(data.frame(w = w_eff, t(res_matrix[, 3])), 
+              file = sprintf("./simres3/ancova_ub_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres3/ancova_ub_delta%.2f.txt", delta)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres3/ancova_ub_delta%.2f.txt", delta)))
+  write.table(data.frame(w = w_eff, t(res_matrix[, 4])), 
+              file = sprintf("./simres3/ancova_dic_delta%.2f.txt", delta), 
+              append = file.exists(sprintf("./simres3/ancova_dic_delta%.2f.txt", delta)), 
+              quote = FALSE,
+              sep = "\t",
+              row.names = F,
+              col.names = !file.exists(sprintf("./simres3/ancova_dic_delta%.2f.txt", delta)))
 }

@@ -38,3 +38,7 @@ model {
                + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - log(sigma2);
   }
 }
+
+generated quantities {
+  real ll = normal_id_glm_lpdf(Y | X, 0, beta, sigma);
+}
