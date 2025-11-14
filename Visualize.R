@@ -23,7 +23,10 @@ read_one <- function(fp) {
   
   dat |>
     tidyr::pivot_longer(everything(), names_to = "method", values_to = "value") |>
-    mutate(metric = metric, delta = delta, .before = 1)
+    mutate(metric = metric,
+           beta = 0.60 + delta,                     # 关键：真值 beta
+           beta_lab  = sprintf("beta=%.2f", beta),  # 用于图例的标签
+           .before = 1)
 }
 
 long <- purrr::map_dfr(files, read_one) |>
@@ -32,48 +35,47 @@ long <- purrr::map_dfr(files, read_one) |>
 # === 3) 逐指标汇总 ===
 # 真值 = 0.6 + delta
 truth_tbl <- long |>
-  distinct(delta) |>
-  mutate(truth = 0.6 + delta)
+  distinct(beta)
 
 # estimate -> Bias / RMSE
 est_sum <- long |>
   filter(metric == "estimate") |>
-  left_join(truth_tbl, by = "delta") |>
-  group_by(delta, method) |>
+  left_join(truth_tbl, by = "beta") |>
+  group_by(beta, method) |>
   summarise(
-    Bias = mean(value - truth),
-    RMSE = sqrt(mean((value - truth)^2)),
+    Bias = mean(value - beta),
+    RMSE = sqrt(mean((value - beta)^2)),
     .groups = "drop"
   )
 
 # cilength -> 平均 CI length
 cil_sum <- long |>
   filter(metric == "cilength") |>
-  group_by(delta, method) |>
+  group_by(beta, method) |>
   summarise(CI_length = mean(value), .groups = "drop")
 
 # coverage -> 覆盖概率
 cov_sum <- long |>
   filter(metric == "coverage") |>
-  group_by(delta, method) |>
+  group_by(beta, method) |>
   summarise(Coverage = mean(value), .groups = "drop")
 
 # rejection -> Power
 pow_sum <- long |>
   filter(metric == "rejection") |>
-  group_by(delta, method) |>
+  group_by(beta, method) |>
   summarise(Power = mean(value), .groups = "drop")
 
 # rhat -> 平均 Rhat（如需最大/分位数可自行加列）
 rhat_sum <- long |>
   filter(metric == "rhat") |>
-  group_by(delta, method) |>
+  group_by(beta, method) |>
   summarise(Rhat = mean(value), .groups = "drop")
 
 # === 4) 合并汇总表 ===
 summary_tbl <- list(est_sum, cil_sum, cov_sum, pow_sum, rhat_sum) |>
-  purrr::reduce(dplyr::full_join, by = c("delta","method")) |>
-  arrange(delta, method)
+  purrr::reduce(dplyr::full_join, by = c("beta","method")) |>
+  arrange(beta, method)
 
 # 便于展示的四舍五入版本
 summary_disp <- summary_tbl |>
@@ -95,7 +97,7 @@ plot_metric <- function(df, y, ylab, ttl,
                         target_power = 0.8,
                         jitter_width = 0.001) {
   
-  p <- ggplot(df, aes(x = delta, y = .data[[y]],
+  p <- ggplot(df, aes(x = beta, y = .data[[y]],
                       color = method, linetype = method, shape = method, group = method)) +
     geom_line(linewidth = 0.9, alpha = 0.9) +
     geom_point(size = 2.6, stroke = 0.5,
@@ -103,9 +105,10 @@ plot_metric <- function(df, y, ylab, ttl,
     scale_color_brewer(palette = "Dark2") +
     scale_linetype_manual(values = lt) +
     scale_shape_manual(values = sh) +
-    scale_x_continuous(breaks = sort(unique(df$delta))) +
-    labs(title = ttl, x = "Delta", y = ylab, color = "Method",
+    scale_x_continuous(breaks = sort(unique(df$beta))) +
+    labs(title = ttl, x = "Current effect size", y = ylab, color = "Method",
          linetype = "Method", shape = "Method") +
+    geom_vline(xintercept = 0.6, linetype = "dashed", color = "red", linewidth = 1) +
     theme_bw() +
     theme(legend.position = "bottom", legend.box = "vertical", legend.title = element_blank(),
           plot.title = element_text(face = "bold", hjust = 0.5))
@@ -123,9 +126,9 @@ plot_metric <- function(df, y, ylab, ttl,
   p
 }
 
-p_bias  <- plot_metric(est_sum, "Bias", "Bias",  "Bias vs Delta")
-p_rmse  <- plot_metric(est_sum, "RMSE", "RMSE",  "RMSE vs Delta")
-p_power <- plot_metric(pow_sum, "Power","Power", "Power vs Delta")
+p_bias  <- plot_metric(est_sum, "Bias", "Bias",  "Bias vs Current Effect Size")
+p_rmse  <- plot_metric(est_sum, "RMSE", "RMSE",  "RMSE vs Current Effect Size")
+p_power <- plot_metric(pow_sum, "Power","Power", "Power vs Current Effect Size")
 # 显示 / 保存
 print(p_bias);  print(p_rmse);  print(p_power)
 save(summary_disp, p_bias, p_rmse, p_power, file = "simres1.RData")
@@ -157,25 +160,25 @@ read_one <- function(fp) {
     mutate(metric = metric,
            delta  = delta,
            w      = w,
-           beta_true = 0.60 + delta,                     # 关键：真值 beta
-           beta_lab  = sprintf("beta=%.2f", beta_true),  # 用于图例的标签
+           beta = 0.60 + delta,                     # 关键：真值 beta
+           beta_lab  = sprintf("Current effect size=%.2f", beta),  # 用于图例的标签
            .before = 1)
 }
 
 long <- purrr::map_dfr(files, read_one) |>
   mutate(method   = factor(method, levels = methods),
          # 图例按数值从小到大排序（比如 beta=0.00 在前，beta=0.60 在后）
-         beta_lab = factor(beta_lab, levels = unique(beta_lab[order(beta_true)])))
+         beta_lab = factor(beta_lab, levels = unique(beta_lab[order(beta)])))
 
 # ===== 3) 汇总：DIC 均值 & Power（rejection 均值）=====
 dic_sum <- long |>
   filter(metric == "dic") |>
-  group_by(method, w, beta_true, beta_lab) |>
+  group_by(method, w, beta, beta_lab) |>
   summarise(DIC = mean(value), .groups = "drop")
 
 pow_sum <- long |>
   filter(metric == "rejection") |>
-  group_by(method, w, beta_true, beta_lab) |>
+  group_by(method, w, beta, beta_lab) |>
   summarise(Power = mean(value), .groups = "drop")
 
 # 可选导出
@@ -206,8 +209,8 @@ make_plot <- function(df, yvar, ylab, title, add_power_refs = FALSE) {
   p
 }
 
-p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC vs w (Grouped by Beta)")
-p_power <- make_plot(pow_sum, "Power", "Power",    "Power vs w (Grouped by Beta)", add_power_refs = TRUE)
+p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC vs w")
+p_power <- make_plot(pow_sum, "Power", "Power",    "Power vs w", add_power_refs = TRUE)
 
 print(p_dic);print(p_power)
 save(p_dic, p_power, file = "simres2.RData")

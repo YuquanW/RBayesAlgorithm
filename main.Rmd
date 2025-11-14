@@ -15,7 +15,7 @@ date: "2025-10-22"
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 7, fig.align='center')
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 6, fig.align='center')
 library(rstan)
 library(ggplot2)
 library(dplyr)
@@ -144,7 +144,7 @@ $$Y_{i}-Y_i^{baseline}=\alpha+(\tau+\delta I(i\in D))A_{i}+\gamma Y_{i}^{baselin
 Y_i^{baseline}\overset{i.i.d.}{\sim}N(0, \sigma_Y^2)\\
 \varepsilon_{i}\overset{i.i.d.}{\sim}N(0, \sigma^2).$$
 
-其中，参数$\tau$为历史数据的治疗效应，$\beta=\tau+\delta$为当前研究的治疗效应。当前研究的样本量$n=56$，历史数据的样本量$n_{hst}=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应ANCOVA的$R^2=0.13$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。以0.05为步长将$\delta$从-0.6递增至0来评估prior-data conflict下各方法的表现。
+其中，参数$\tau$为历史数据的治疗效应，$\beta=\tau+\delta$为当前研究的治疗效应，$|\delta|$衡量当前研究的数据与历史数据间的data conflict大小。当前研究的样本量$n=56$，历史数据的样本量$n_{hst}=100$，治疗组和对照组的比例为$1:1$。对于参数，取$\alpha=0.5, \tau = 0.6, \gamma = 0.1, \sigma_Y = 0.5$，$\sigma$的选取满足$Var(Y_i)=1$，此时对应ANCOVA的$R^2=0.13$，在单侧$\alpha=0.025$时检验$\tau>0$的power约为0.8。模拟研究的第一部分以0.05为步长将$\delta$从-0.6递增至0来评估prior-data conflict下各方法的表现。
 
 ``` {r echo=TRUE}
 # --- Sample size estimation ---
@@ -442,23 +442,23 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 #### 统计性能比较
 
-本节比较$\delta$变化时各方法的统计性能，各$\delta$下的模拟次数为1000次。下图展示了
+本节比较prior-data conflict的程度变化时各方法的统计性能，历史数据的治疗效应为0.6，当前研究的治疗效应（current effect size）从0增加至0.6。每个current effect size下的模拟次数为1000次。下图展示了
 
-```{r fig4-6, fig.width=9}
+```{r fig4-6, fig.width=9, fig.cap="Bias of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Bias is estimated based on 1000 simulation datasets."}
 load("simres1.RData")
-print(p_bias)
+p_bias
 ```
 
 图\@ref(fig:fig4-7)展示了
 
-```{r fig4-7, fig.width=9}
-print(p_rmse)
+```{r fig4-7, fig.width=9, fig.cap="RMSE of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. RMSE is estimated based on 1000 simulation datasets."}
+p_rmse
 ```
 
 图\@ref(fig:fig4-8)展示了。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。
 
-```{r fig4-8, fig.width=9}
-print(p_power)
+```{r fig4-8, fig.width=9, fig.cap="Power of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Note that when $\\beta=0$, the power is actually the type I error. The lower and higher horizontal line indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\beta=0.6$. Power is estimated based on 1000 simulation datasets."}
+p_power
 ```
 
 #### 试验设计阶段的先验参数选取
@@ -467,11 +467,11 @@ print(p_power)
 
 ```{r fig4-9, fig.width=9}
 load("simres2.RData")
-print(p_power)
+p_power
 ```
 
 ```{r fig4-10, fig.width=9}
-print(p_dic)
+p_dic
 ```
 
 
