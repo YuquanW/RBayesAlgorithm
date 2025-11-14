@@ -442,15 +442,35 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 #### 统计性能比较
 
-本节比较$\delta$变化时各方法的统计性能。由于模拟次数为1000次，$\alpha=0.025$下的正常一类错误率范围约为0.015至0.035，功效范围为0.775至0.825。
+本节比较$\delta$变化时各方法的统计性能，各$\delta$下的模拟次数为1000次。下图展示了
 
+```{r fig4-6, fig.width=9}
+load("simres1.RData")
+print(p_bias)
+```
+
+图\@ref(fig:fig4-7)展示了
+
+```{r fig4-7, fig.width=9}
+print(p_rmse)
+```
+
+图\@ref(fig:fig4-8)展示了。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。
+
+```{r fig4-8, fig.width=9}
+print(p_power)
+```
 
 #### 试验设计阶段的先验参数选取
 
 本节的模拟试验旨在探索应用场景中，如何从统计模拟和信息准则的角度给出合适范围的$w$。
 
-```{r fig.width=9}
+```{r fig4-9, fig.width=9}
 load("simres2.RData")
+print(p_power)
+```
+
+```{r fig4-10, fig.width=9}
 print(p_dic)
 ```
 
