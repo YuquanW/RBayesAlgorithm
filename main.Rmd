@@ -449,6 +449,12 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 本节的模拟试验旨在探索应用场景中，如何从统计模拟和信息准则的角度给出合适范围的$w$。
 
+```{r fig.width=9}
+load("simres2.RData")
+print(p_dic)
+```
+
+
 #### 基于实际场景的敏感性分析展示
 
 <!-- # Backup Code -->

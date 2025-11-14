@@ -1,5 +1,6 @@
 library(tidyverse)
 
+#simres1
 # === 1) 参数与文件列表 ===
 dir_path <- "./simres/"   # 改成你的目录
 pattern <- "^ancova_(estimate|cilength|coverage|rejection|rhat)_delta(-?\\d+(?:\\.\\d+)?)\\.txt$"
@@ -106,7 +107,8 @@ plot_metric <- function(df, y, ylab, ttl,
     labs(title = ttl, x = "Delta", y = ylab, color = "Method",
          linetype = "Method", shape = "Method") +
     theme_bw() +
-    theme(legend.position = "bottom", legend.box = "vertical", legend.title = element_blank())
+    theme(legend.position = "bottom", legend.box = "vertical", legend.title = element_blank(),
+          plot.title = element_text(face = "bold", hjust = 0.5))
   
   if (identical(tolower(y), "power")) {
     if (!is.null(alpha_threshold)) {
@@ -126,9 +128,87 @@ p_rmse  <- plot_metric(est_sum, "RMSE", "RMSE",  "RMSE vs Delta")
 p_power <- plot_metric(pow_sum, "Power","Power", "Power vs Delta")
 # 显示 / 保存
 print(p_bias);  print(p_rmse);  print(p_power)
-ggsave("bias_vs_delta.png", p_bias, width = 6, height = 4, dpi = 150)
-ggsave("rmse_vs_delta.png", p_rmse, width = 6, height = 4, dpi = 150)
-ggsave("power_vs_delta.png", p_power, width = 6, height = 4, dpi = 150)
+save(summary_disp, p_bias, p_rmse, p_power, file = "simres1.RData")
+load("simres1.RData")
 
-# 可选：查看汇总表
-summary_disp
+# simres2
+# ===== 1) 文件与方法名 =====
+dir_path <- "./simres2/"   # 改成你的目录
+pattern <- "^ancova_(dic|rejection)_delta(-?\\d+(?:\\.\\d+)?)_w(\\d+(?:\\.\\d+)?)\\.txt$"
+methods <- c("FMP","FPP")  # 按你的两种方法名改
+
+files <- list.files(dir_path, pattern = pattern, full.names = TRUE)
+stopifnot(length(files) > 0)
+
+# ===== 2) 读取并抽取 metric/delta/w，生成 beta_true =====
+read_one <- function(fp) {
+  bn <- basename(fp)
+  m  <- stringr::str_match(bn, pattern)
+  metric <- m[2]
+  delta  <- as.numeric(m[3])
+  w      <- as.numeric(m[4])
+  
+  dat <- readr::read_tsv(fp, col_names = TRUE, show_col_types = FALSE)
+  stopifnot(ncol(dat) == 2L)
+  colnames(dat) <- methods
+  
+  dat |>
+    pivot_longer(everything(), names_to = "method", values_to = "value") |>
+    mutate(metric = metric,
+           delta  = delta,
+           w      = w,
+           beta_true = 0.60 + delta,                     # 关键：真值 beta
+           beta_lab  = sprintf("beta=%.2f", beta_true),  # 用于图例的标签
+           .before = 1)
+}
+
+long <- purrr::map_dfr(files, read_one) |>
+  mutate(method   = factor(method, levels = methods),
+         # 图例按数值从小到大排序（比如 beta=0.00 在前，beta=0.60 在后）
+         beta_lab = factor(beta_lab, levels = unique(beta_lab[order(beta_true)])))
+
+# ===== 3) 汇总：DIC 均值 & Power（rejection 均值）=====
+dic_sum <- long |>
+  filter(metric == "dic") |>
+  group_by(method, w, beta_true, beta_lab) |>
+  summarise(DIC = mean(value), .groups = "drop")
+
+pow_sum <- long |>
+  filter(metric == "rejection") |>
+  group_by(method, w, beta_true, beta_lab) |>
+  summarise(Power = mean(value), .groups = "drop")
+
+# 可选导出
+readr::write_csv(dic_sum, "dic_by_w_beta.csv")
+readr::write_csv(pow_sum, "power_by_w_beta.csv")
+
+# ===== 4) 作图：以 beta_true（beta_lab）为图例曲线 =====
+make_plot <- function(df, yvar, ylab, title, add_power_refs = FALSE) {
+  p <- ggplot(df, aes(x = w, y = .data[[yvar]],
+                      color = beta_lab, linetype = beta_lab, shape = beta_lab, group = beta_lab)) +
+    geom_line(linewidth = 0.9, alpha = 0.9) +
+    geom_point(size = 2.6, position = position_jitter(width = 0.003, height = 0)) +
+    scale_x_continuous(breaks = sort(unique(df$w))) +
+    labs(x = "w", y = ylab, title = title, color = NULL, linetype = NULL, shape = NULL) +
+    facet_wrap(~ method, ncol = length(levels(df$method))) +
+    theme_bw() +
+    theme(legend.position = "bottom", legend.box = "vertical",
+          plot.title = element_text(face = "bold", hjust = 0.5))
+  
+  if (add_power_refs) {
+    p <- p +
+      geom_hline(yintercept = 0.025, linetype = "dashed",  color = "#D55E00", linewidth = 0.7) +
+      geom_hline(yintercept = 0.05,  linetype = "dashed",  color = "#E69F00", linewidth = 0.7) +
+      geom_hline(yintercept = 0.10,  linetype = "dashed",  color = "#F0E442", linewidth = 0.7) +
+      geom_hline(yintercept = 0.70,  linetype = "dotdash", color = "#0072B2", linewidth = 0.7) +
+      geom_hline(yintercept = 0.80,  linetype = "dotdash", color = "#009E73", linewidth = 0.7)
+  }
+  p
+}
+
+p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC vs w (Grouped by Beta)")
+p_power <- make_plot(pow_sum, "Power", "Power",    "Power vs w (Grouped by Beta)", add_power_refs = TRUE)
+
+print(p_dic);print(p_power)
+save(p_dic, p_power, file = "simres2.RData")
+
