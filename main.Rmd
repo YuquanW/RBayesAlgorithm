@@ -442,24 +442,40 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 #### 统计性能比较
 
-本节比较prior-data conflict的程度变化时各方法的统计性能，历史数据的治疗效应为0.6，当前研究的治疗效应（current effect size）从0增加至0.6。每个current effect size下的模拟次数为1000次。下图展示了
+本节比较prior-data conflict的程度变化时各方法的统计性能，历史数据的治疗效应为0.6，当前研究的治疗效应（current effect size）从0增加至0.6。每个current effect size下的模拟次数为1000次。
+
+图\@ref(fig:fig4-6)展示了FMP ($w=0.5$), RMP, FPP ($w=0.5$), UPP, ANPP, NPP, ANCOVA七种方法的bias随current effect size的变化。图\@ref(fig:fig4-7)展示了上述方法的RMSE随current effect size的变化，从bias和variance的综合角度评估点估计。图\@ref(fig:fig4-8)展示了各方法的power随着current effect size的变化，其中，当$\beta=0$时，power即为type I error。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。对于各方法的统计性能主要有以下几点观察：
+
+1. 所有信息借用的方法在无prior-data conflict下bias与RMSE最低；
+2. FMP和RMP的表现几乎相同，验证了Methods部分对混合先验的讨论，这两种方法的RMSE在低prior-data conflict ($\beta$在0.45~0.6之间) 的场景下表现最佳；
+2. FPP的bias随current effect size的变化较其他方法更不稳定，且type I error最高；
+3. UPP的bias比ANCOVA外的其他方法更低，假设检验更保守;
+4. ANPP和NPP的表现几乎相同，表明path sampling的近似对后验推断几乎没有影响，这两种方法的表现也与FMP和FPP相近；
+5. 由于ANCOVA方法不借用任何信息，其bias均在0附近，但是RMSE在低prior-data conflict场景下要高于其他信息借用方法，而power的表现则符合预设的$\alpha$和power。
+ 
+表 展示了。
 
 ```{r fig4-6, fig.width=9, fig.cap="Bias of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Bias is estimated based on 1000 simulation datasets."}
 load("simres1.RData")
 p_bias
 ```
 
-图\@ref(fig:fig4-7)展示了
-
 ```{r fig4-7, fig.width=9, fig.cap="RMSE of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. RMSE is estimated based on 1000 simulation datasets."}
 p_rmse
 ```
 
-图\@ref(fig:fig4-8)展示了。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。
-
 ```{r fig4-8, fig.width=9, fig.cap="Power of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Note that when $\\beta=0$, the power is actually the type I error. The lower and higher horizontal line indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\beta=0.6$. Power is estimated based on 1000 simulation datasets."}
 p_power
 ```
+
+```{r tab4-2, tab.cap=""}
+summary_disp %>%
+  kbl(format = "html", digits = 4, booktabs = T, centering = T) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  pack_rows("Group 1", 4, 7) %>%
+  pack_rows("Group 2", 8, 10)
+```
+
 
 #### 试验设计阶段的先验参数选取
 
