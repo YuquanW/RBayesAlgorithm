@@ -13,6 +13,12 @@ date: "2025-10-22"
   }
 </style>
 
+<style>
+  figcaption, p.caption {
+    text-align: left;
+    text-indent: 0;
+  }
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 6, fig.align='center')
@@ -189,7 +195,7 @@ ANCOVA模型的模拟研究考虑以下几种信息先验方法：
 
 #### 试运行结果展示
 
-以下给出ANPP和NPP方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度。图\@ref(fig:fig4-1) - \@ref(fig:fig4-4)展示试运行结果的MCMC算法收敛情况（trace plot通过比较各个chain的抽样分布来检查收敛性，pair plot中若出现黄色和红色的散点则需要注意抽样的收敛性，在一些hierarchical models可能会出现以上问题，此时应通过non-centered parameterization处理模型）：
+以下给出ANPP和NPP方法在一组示例模拟数据上的试运行结果（$\delta=0$，也即没有prior-data conflict），其中`beta[3]`为治疗效应，`sigma2`为残差方差$\sigma^2$，`w_eff`为权重或温度。图\@ref(fig:fig4-1)和\@ref(fig:fig4-2)展示试运行结果的MCMC算法收敛情况（trace plot通过比较各个chain的抽样分布来检查收敛性，pair plot中若出现黄色和红色的散点则需要注意抽样的收敛性，在一些hierarchical models可能会出现以上问题，此时应通过non-centered parameterization处理模型）：
 
 ```{r include=FALSE}
 # # --- Example run ---
@@ -281,7 +287,8 @@ tabulize <- function(stan_fits = list(),
     seq_along(5:(4+n_w)),
     .init = display_df %>%
               kbl(booktabs = T, caption = caption) %>%
-              kable_styling(bootstrap_options = c("striped", "hover")) %>%
+              kable_styling(bootstrap_options = c("striped", "hover"),
+                            full_width = FALSE) %>%
               column_spec(4, image = spec_pointrange(
                 x = mean, 
                 xmin = lb, 
@@ -374,7 +381,7 @@ pairs(ancova_upp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair p
 
 <!-- 5. ANPP -->
 
-```{r fig4-1, fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and temperature under the approximately normalized power prior using path sampling. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
+```{r fig4-1, fig.show='hold', fig.cap="Trace and pair plots of the posterior samples of treatment effect, residual variance, and temperature under the approximately normalized power prior using path sampling. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 iterations per chain.", out.width=c('48%','48%'), fig.asp=0.7}
 ## Normalized power prior using path sampling
 
 # data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
@@ -382,15 +389,12 @@ pairs(ancova_upp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair p
 # save(ancova_anpp_fit, file = "ancova_anpp_fit.RData")
 load("ancova_anpp_fit.RData")
 traceplot(ancova_anpp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for approximately normalized power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
-```
-
-```{r fig4-2, fig.cap="Pair plots of the posterior samples of treatment effect, residual variance, and temperature under the approximately normalized power prior using path sampling. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 pairs(ancova_anpp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair plot for approximately normalized power prior")
 ```
 
 <!-- 6. NPP -->
 
-```{r fig4-3, fig.cap="Trace plots of the posterior samples of treatment effect, residual variance, and temperature under the normalized power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
+```{r fig4-2, fig.show="hold", fig.cap="Trace and pair plots of the posterior samples of treatment effect, residual variance, and temperature under the normalized power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 iterations per chain.", out.width=c('48%','48%'), fig.asp=0.7}
 ## Normalized power prior with exact constant
 
 # data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = TRUE)
@@ -398,9 +402,6 @@ pairs(ancova_anpp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair 
 # save(ancova_npp_fit, file = "ancova_npp_fit.RData")
 load("ancova_npp_fit.RData")
 traceplot(ancova_npp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), inc_warmup = TRUE, nrow = 3) + ggtitle("Trace plot for normalized power prior") + theme(plot.title = element_text(hjust = 0.5, size = 14, face = "bold"))
-```
-
-```{r fig4-4, fig.cap="Pair plots of the posterior samples of treatment effect, residual variance, and temperature under the normalized power prior. The shaded region marks burn-in. MCMC ran with 4 chains and 5,000 draws per chain."}
 pairs(ancova_npp_fit$fit, pars = c("beta[3]", "sigma2", "w_eff"), main = "Pair plot for normalized power prior")
 ```
 
@@ -421,7 +422,7 @@ tabulize(stan_fits, lm_fits,
 
 下图比较了使用path sampling近似的$\log C(w)$和基于式\@ref(eq:5)的$\log C(w)$。
 
-```{r fig4-5, fig.cap="Comparison of the path sampling approximated normalization constant (red) and the closed-form normalization constant (blue)."}
+```{r fig4-3, fig.cap="Comparison of the path sampling approximated normalization constant (red) and the closed-form normalization constant (blue)."}
 library(mvtnorm)
 w <- (0:200/200)^2
 data <- build_ancova_data(data_cur, data_hst, I(hba1c - hba1c_baseline) ~ hba1c_baseline + treatment, estimate_w = TRUE, normalization = TRUE, exact_constant = FALSE, wknots = knots$wknots, lgCknots = knots$lgCknots)
@@ -444,36 +445,40 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 本节比较prior-data conflict的程度变化时各方法的统计性能，历史数据的治疗效应为0.6，当前研究的治疗效应（current effect size）从0增加至0.6。每个current effect size下的模拟次数为1000次。
 
-图\@ref(fig:fig4-6)展示了FMP ($w=0.5$), RMP, FPP ($w=0.5$), UPP, ANPP, NPP, ANCOVA七种方法的bias随current effect size的变化。图\@ref(fig:fig4-7)展示了上述方法的RMSE随current effect size的变化，从bias和variance的综合角度评估点估计。图\@ref(fig:fig4-8)展示了各方法的power随着current effect size的变化，其中，当$\beta=0$时，power即为type I error。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。对于各方法的统计性能主要有以下几点观察：
+图\@ref(fig:fig4-4)展示了FMP ($w=0.5$), RMP, FPP ($w=0.5$), UPP, ANPP, NPP, ANCOVA七种方法的bias和RMSE随current effect size的变化。图\@ref(fig:fig4-5)展示了各方法的power随着current effect size的变化，其中，当$\beta=0$时，power即为type I error。注意到由于模拟次数为1000次，$\alpha=0.025$下一类错误率的95%可能范围约为0.015至0.035，功效的95%可能范围约为0.775至0.825。对于各方法的统计性能主要有以下几点观察：
 
 1. 所有信息借用的方法在无prior-data conflict下bias与RMSE最低；
-2. FMP和RMP的表现几乎相同，验证了Methods部分对混合先验的讨论，这两种方法的RMSE在低prior-data conflict ($\beta$在0.45~0.6之间) 的场景下表现最佳；
+2. FMP和RMP的表现几乎相同，验证了Methods部分对混合先验的讨论，这两种方法的RMSE在弱prior-data conflict ($\beta$在0.45~0.6之间) 的场景下表现最佳；
 2. FPP的bias随current effect size的变化较其他方法更不稳定，且type I error最高；
 3. UPP的bias比ANCOVA外的其他方法更低，假设检验更保守;
 4. ANPP和NPP的表现几乎相同，表明path sampling的近似对后验推断几乎没有影响，这两种方法的表现也与FMP和FPP相近；
-5. 由于ANCOVA方法不借用任何信息，其bias均在0附近，但是RMSE在低prior-data conflict场景下要高于其他信息借用方法，而power的表现则符合预设的$\alpha$和power。
+5. 由于ANCOVA方法不借用任何信息，其bias均在0附近，但是RMSE在弱prior-data conflict场景下要高于其他信息借用方法，而power的表现则符合预设的$\alpha$和power。
  
-表 展示了。
+表\@ref(tab:tab4-2)展示了上述方法的bias, RMSE, CI length, coverage probability, power和$\hat{R}$在1000次模拟试验中的具体数值，其中$\hat{R}$是用于判断MCMC抽样是否收敛的统计量，$\hat{R}>1.01$表明MCMC抽样的收敛可能存在问题。对于power的计算，ANCOVA方法使用单侧t-检验来检验原假设$H_0:\beta=0$，其他的贝叶斯方法使用10,000次MCMC抽样的后验概率$P(\beta\gt 0|D, D_{hst})\gt 0.975$来检验。
 
-```{r fig4-6, fig.width=9, fig.cap="Bias of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Bias is estimated based on 1000 simulation datasets."}
+就区间估计而言，贝叶斯信息借用的方法在无或弱prior-data conflict场景下，比ANCOVA有更高的coverage probability和更窄的CI length。在强prior-data conflict下，尽管贝叶斯信息借用的方法有更窄的CI length，它们的coverage probability均低于95%。这些结果与各方法的RMSE表现相一致。
+
+```{r fig4-4, fig.show="hold", fig.width=9, fig.cap="Bias and RMSE of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Bias and RMSE are estimated based on 1000 simulation datasets.", out.width=c('48%','48%'), fig.asp=0.7}
 load("simres1.RData")
 p_bias
-```
-
-```{r fig4-7, fig.width=9, fig.cap="RMSE of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. RMSE is estimated based on 1000 simulation datasets."}
 p_rmse
 ```
 
-```{r fig4-8, fig.width=9, fig.cap="Power of the compared methods under various current effect size. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The level of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Note that when $\\beta=0$, the power is actually the type I error. The lower and higher horizontal line indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\beta=0.6$. Power is estimated based on 1000 simulation datasets."}
+```{r fig4-5, fig.width=9, fig.cap="Power of the compared methods under various current effect size. For ANCOVA, the null hypothesis $H_0:\\beta=0$ is tested with one-sided t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. The historical effect size is $\\tau=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Note that when $\\beta=0$, the power is actually the type I error. The lower and higher horizontal line indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\beta=0.6$. Power is estimated based on 1000 simulation datasets."}
 p_power
 ```
 
-```{r tab4-2, tab.cap=""}
+```{r tab4-2}
 summary_disp %>%
-  kbl(format = "html", digits = 4, booktabs = T, centering = T) %>%
-  kable_styling(bootstrap_options = c("striped", "hover")) %>%
-  pack_rows("Group 1", 4, 7) %>%
-  pack_rows("Group 2", 8, 10)
+  mutate("Historical effect size" = 0.6, .before = 2) %>%
+  rename("Current effect size" = "beta",
+         "Method" = "method",
+         "Coverage probability" = "Coverage",
+         "CI length" = "CI_length") %>%
+  kbl(format = "html", digits = 3, booktabs = T, centering = T,
+      caption = "Statistical performance of the compared methods under various current effect size. Confidence intervals are derived at the level of 95%. For ANCOVA, the null hypothesis $H_0:\\beta=0$ is tested with one-sided t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. All metrics are estimated based on 1000 simulation datasets.") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
+  collapse_rows(columns = 1, valign = "top")
 ```
 
 
@@ -491,7 +496,7 @@ p_dic
 ```
 
 
-#### 基于实际场景的敏感性分析展示
+#### 数据分析阶段的敏感性分析
 
 <!-- # Backup Code -->
 
