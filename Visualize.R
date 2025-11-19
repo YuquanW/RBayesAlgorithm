@@ -79,7 +79,8 @@ summary_tbl <- list(est_sum, cil_sum, cov_sum, pow_sum, rhat_sum) |>
 
 # 便于展示的四舍五入版本
 summary_disp <- summary_tbl |>
-  mutate(across(c(Bias, RMSE, CI_length, Coverage, Power, Rhat), \(x) round(x, 4)))
+  mutate(across(c(Bias, RMSE, CI_length, Coverage, Power, Rhat), \(x) round(x, 4))) |>
+  rename("Probability of rejection" = "Power")
 
 # 输出 CSV（可选）
 readr::write_csv(summary_disp, "ancova_summary.csv")
@@ -93,8 +94,6 @@ lt <- c("solid","dashed","dotted","dotdash","longdash","twodash","F8")   # 任�
 sh <- c(16, 17, 15, 3, 8, 4, 18)                                         # 圆/三角/方/十/星/×/菱
 
 plot_metric <- function(df, y, ylab, ttl,
-                        alpha_threshold = 0.025,
-                        target_power = 0.8,
                         jitter_width = 0.001) {
   
   p <- ggplot(df, aes(x = beta, y = .data[[y]],
@@ -114,21 +113,21 @@ plot_metric <- function(df, y, ylab, ttl,
           plot.title = element_text(face = "bold", hjust = 0.5))
   
   if (identical(tolower(y), "power")) {
-    if (!is.null(alpha_threshold)) {
-      p <- p + geom_hline(yintercept = alpha_threshold,
-                          linetype = "dashed", color = "firebrick", linewidth = 0.7)
-    }
-    if (!is.null(target_power)) {
-      p <- p + geom_hline(yintercept = target_power,
-                          linetype = "dotdash", color = "steelblue", linewidth = 0.7)
-    }
+    p <- p + geom_hline(yintercept = 0.025,
+                        linetype = "dashed", color = "firebrick", linewidth = 0.7) +
+      geom_hline(yintercept = 0.80,
+                 linetype = "dotdash", color = "steelblue", linewidth = 0.7) +
+      scale_y_continuous(
+        breaks = sort(unique(c(c(0.025, 0.80), pretty(range(df[[y]]), n = 2)))),
+        labels = scales::label_number(accuracy = 0.001)
+      )
   }
   p
 }
 
-p_bias  <- plot_metric(est_sum, "Bias", "Bias",  "Bias vs Current Effect Size")
-p_rmse  <- plot_metric(est_sum, "RMSE", "RMSE",  "RMSE vs Current Effect Size")
-p_power <- plot_metric(pow_sum, "Power","Power", "Power vs Current Effect Size")
+p_bias  <- plot_metric(est_sum, "Bias", "Bias",  "Bias v.s. Current Effect Size")
+p_rmse  <- plot_metric(est_sum, "RMSE", "RMSE",  "RMSE v.s. Current Effect Size")
+p_power <- plot_metric(pow_sum, "Power", "Probability of rejection", "Probability of Rejection v.s. Current Effect Size")
 # 显示 / 保存
 print(p_bias);  print(p_rmse);  print(p_power)
 save(summary_disp, p_bias, p_rmse, p_power, file = "simres1.RData")
@@ -204,14 +203,140 @@ make_plot <- function(df, yvar, ylab, title, add_power_refs = FALSE) {
       geom_hline(yintercept = 0.05,  linetype = "dashed",  color = "#E69F00", linewidth = 0.7) +
       geom_hline(yintercept = 0.10,  linetype = "dashed",  color = "#F0E442", linewidth = 0.7) +
       geom_hline(yintercept = 0.70,  linetype = "dotdash", color = "#0072B2", linewidth = 0.7) +
-      geom_hline(yintercept = 0.80,  linetype = "dotdash", color = "#009E73", linewidth = 0.7)
+      geom_hline(yintercept = 0.80,  linetype = "dotdash", color = "#009E73", linewidth = 0.7) +
+      scale_y_continuous(
+        breaks = sort(unique(c(c(0.025, 0.05, 0.10, 0.70, 0.80), pretty(range(df[[yvar]]), n = 5)))),
+        labels = scales::label_number(accuracy = 0.001)
+      )
   }
   p
 }
 
-p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC vs w")
-p_power <- make_plot(pow_sum, "Power", "Power",    "Power vs w", add_power_refs = TRUE)
+p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC v.s. w")
+p_power <- make_plot(pow_sum, "Power", "Probability of rejection",    "Probability of Rejection v.s. w", add_power_refs = TRUE)
 
 print(p_dic);print(p_power)
 save(p_dic, p_power, file = "simres2.RData")
 
+# simres3
+# ===== 1) 文件与方法名 =====
+dir_path <- "./simres3/"  # 修改为你的目录
+pattern <- "^ancova_(dic|estimate|lb|ub)_delta(-?\\d+(?:\\.\\d+)?)\\.txt$"
+
+files <- list.files(dir_path, pattern = pattern, full.names = TRUE)
+if (length(files) == 0L) stop("未找到 ancova_xxx_deltayyy.txt 文件")
+
+read_one <- function(fp) {
+  bn <- basename(fp)
+  m  <- stringr::str_match(bn, pattern)
+  metric <- m[2]                 # dic / estimate / lb / ub
+  delta  <- as.numeric(m[3])     # -0.60 / -0.30 等
+  
+  # 文件内容：100 x 3，有列名：第一列是 w，其余两列是两种方法
+  dat <- readr::read_tsv(fp, show_col_types = FALSE)
+  if (ncol(dat) < 3L) stop("期望 3 列( w + 2 方法 )，但文件中列数 < 3: ", bn)
+  
+  # 把第一列改名为 w，其余列视为方法
+  names(dat)[1] <- "w"
+  
+  dat |>
+    tidyr::pivot_longer(
+      cols = -w,
+      names_to = "method",
+      values_to = "value"
+    ) |>
+    mutate(
+      metric = metric,
+      delta  = delta,
+      .before = 1
+    )
+}
+
+long <- purrr::map_dfr(files, read_one)
+
+# 确保 w 为数值，方法做成因子（保持顺序）
+long <- long |>
+  mutate(
+    w      = as.numeric(w),
+    method = factor(method)
+  )
+
+deltas <- sort(unique(long$delta))
+
+#===== 2. 整理出 CI 用的数据（estimate + lb + ub）======
+ci_df <- long |>
+  filter(metric %in% c("estimate", "lb", "ub")) |>
+  select(delta, w, method, metric, value) |>
+  tidyr::pivot_wider(
+    names_from  = metric,
+    values_from = value
+  )
+# 得到列：delta, w, method, estimate, lb, ub
+
+
+#===== 3. 整理出 DIC 用的数据 =====
+dic_df <- long |>
+  filter(metric == "dic") |>
+  transmute(
+    delta, w, method,
+    dic = value
+  )
+
+
+#===== 4. 画图函数：CI 图 & DIC 图 =====
+# CI 图：线 + ribbon 可信域，按方法 facet（左右两个 panel）
+plot_ci_one_delta <- function(d) {
+  dat <- ci_df |>
+    filter(delta == d)
+  
+  ggplot(dat,
+         aes(x = w, y = estimate,
+             group = method, color = method, fill = method)) +
+    geom_ribbon(aes(ymin = lb, ymax = ub),
+                alpha = 0.2, color = NA) +
+    geom_line(linewidth = 0.8) +
+    labs(
+      title = paste0("Tipping-point (delta = ", d, ")"),
+      x = "w", y = "估计值及 95% 区间"
+    ) +
+    facet_wrap(~ method, nrow = 1) +
+    theme_bw() +
+    theme(
+      legend.position = "none"  # 已经分 panel，就不再需要图例
+    )
+}
+
+# DIC 图：点 + 线，按方法 facet
+plot_dic_one_delta <- function(d) {
+  dat <- dic_df |>
+    filter(delta == d)
+  
+  ggplot(dat,
+         aes(x = w, y = dic,
+             group = method, color = method)) +
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 2) +
+    labs(
+      title = paste0("DIC vs w (delta = ", d, ")"),
+      x = "w", y = "DIC"
+    ) +
+    facet_wrap(~ method, nrow = 1) +
+    theme_bw() +
+    theme(
+      legend.position = "none"
+    )
+}
+
+
+#===== 5. 生成 4 张图（2 个 delta * CI / DIC） =====
+# 假设 delta 只有 -0.60 和 -0.30
+delta1 <- deltas[1]
+delta2 <- deltas[2]
+
+p_ci_1   <- plot_ci_one_delta(delta1)
+p_ci_2   <- plot_ci_one_delta(delta2)
+p_dic_1  <- plot_dic_one_delta(delta1)
+p_dic_2  <- plot_dic_one_delta(delta2)
+
+# 显示
+print(p_ci_1);print(p_ci_2);print(p_dic_1);print(p_dic_2)
