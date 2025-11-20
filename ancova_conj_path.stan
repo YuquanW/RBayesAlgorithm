@@ -4,21 +4,21 @@ data {
 
   // Historical data
   int<lower=1> p;
-  vector[p] beta_hst;
-  matrix[p, p] L_Sigma_hst;
+  real tau_hst;
+  real<lower=0> se_hst;
 
   // Baseline (vague) NIG prior
-  vector[p] beta_vag;
-  matrix[p, p] L_Sigma_vag;
+  real tau_vag;
+  real<lower=0> se_vag;
 }
 parameters {
-  vector[p] beta;
+  real tau;
 }
 model {
   // Power prior
-  target += wknot * multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst)
-             + multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag);
+  target += wknot * normal_lpdf(tau | tau_hst, se_hst)
+             + normal_lpdf(tau | tau_vag, se_vag);
 }
 generated quantities {
-  real ll = multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst);
+  real ll = normal_lpdf(tau | tau_hst, se_hst);
 }

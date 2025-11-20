@@ -18,12 +18,12 @@ data {
   matrix[n, p] X;
 
   // Historical prior
-  vector[p] beta_hst;
-  matrix[p, p] L_Sigma_hst;
+  real tau_hst;
+  real<lower=0> se_hst;
 
   // Baseline (vague) prior
-  vector[p] beta_vag;
-  matrix[p, p] L_Sigma_vag;
+  real tau_vag;
+  real<lower=0> se_vag;
 
   // Power prior control
   real<lower=0, upper=1> w_fixed; // used if estimate_w==0
@@ -36,16 +36,13 @@ data {
   vector<lower=0, upper=1>[K] wknots;
   vector[K] lgCknots;
 }
-transformed data {
-  matrix[p, p] Sigma_hst = L_Sigma_hst * L_Sigma_hst';
-  matrix[p, p] Sigma_vag = L_Sigma_vag * L_Sigma_vag';
-}
 parameters {
   vector[p] beta;
   real<lower=0> sigma2;
   real<lower=0, upper=1> w;      // only used if estimate_w==1
 }
 transformed parameters {
+  real tau = beta[p];
   real sigma = sqrt(sigma2);
   real<lower=0, upper=1> w_eff = estimate_w == 1 ? w : w_fixed;
 }
@@ -54,13 +51,13 @@ model {
   if (estimate_w == 1) w ~ beta(1, 1);
 
   // Optional normalization
-  real lgC = normalization*(exact_constant*(-0.5*w*p*log(2*pi())-0.5*w*log(determinant(Sigma_hst))
-               -0.5*p*log(w)+multi_normal_lpdf(beta_hst | beta_vag, Sigma_hst/w+Sigma_vag)) 
+  real lgC = normalization*(exact_constant*(-0.5*w*log(2*pi())-0.5*w*log(se_hst^2)
+               -0.5*log(w)+normal_lpdf(tau_hst | tau_vag, sqrt(se_hst^2/w+se_vag))) 
                + (1-exact_constant)*interpolateC(w, K, wknots, lgCknots));
 
   // Power prior
-  target += w_eff * multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst)
-             + multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag)
+  target += w_eff * normal_lpdf(tau | tau_hst, se_hst)
+             + normal_lpdf(tau | tau_vag, se_vag)
              + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - lgC - log(sigma2);
 }
 

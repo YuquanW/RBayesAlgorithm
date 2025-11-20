@@ -6,12 +6,12 @@ data {
   matrix[n, p] X;
 
   // Historical prior
-  vector[p] beta_hst;
-  matrix[p, p] L_Sigma_hst;
+  real tau_hst;
+  real<lower=0> se_hst;
 
   // Vague prior
-  vector[p] beta_vag;
-  matrix[p, p] L_Sigma_vag;
+  real tau_vag;
+  real<lower=0> se_vag;
 
   // Mixture weight control
   real<lower=0, upper=1> w_fixed;  // used if estimate_w==0
@@ -23,6 +23,7 @@ parameters {
   real<lower=0, upper=1> w;  // only used if estimate_w==1
 }
 transformed parameters {
+  real tau = beta[p];
   real<lower=0> sigma = sqrt(sigma2);
   real<lower=0, upper=1> w_eff = estimate_w == 1 ? w : w_fixed;
 }
@@ -33,8 +34,8 @@ model {
   // Mixture prior on beta and improper prior on sigma2
   {
     target += log_mix(w_eff, 
-                      multi_normal_cholesky_lpdf(beta | beta_hst, L_Sigma_hst), 
-                      multi_normal_cholesky_lpdf(beta | beta_vag, L_Sigma_vag))
+                      normal_lpdf(tau | tau_hst, se_hst), 
+                      normal_lpdf(tau | tau_vag, se_vag))
                + normal_id_glm_lpdf(Y | X, 0, beta, sigma) - log(sigma2);
   }
 }

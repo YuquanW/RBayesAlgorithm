@@ -17,31 +17,30 @@ run_model <- function(model, data,
 
 # --- Util: Path sampling ---
 build_ancova_path_data <- function(df_hst, formula,
-                                   beta_vag = NULL, Sigma_vag = NULL) {
+                                   tau_vag = NULL, se_vag = NULL) {
   des_hst <- mk_design(df_hst, formula)
+  p <- ncol(des_hst$X)
   
   # historical informative prior (scaled by a0)
   fit_hst <- lm(formula, df_hst)
-  beta_hst <- coef(fit_hst)
-  L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
+  tau_hst <- coef(fit_hst)[p]
+  se_hst <- sqrt(sandwich::vcovHC(fit_hst)[p, p])
   
   # vague prior
-  if (is.null(beta_vag)) {
-    beta_vag <- beta_hst
+  if (is.null(tau_vag)) {
+    tau_vag <- tau_hst
   }
-  if (is.null(Sigma_vag)) {
-    L_Sigma_vag <- sqrt(nrow(df_hst))*L_Sigma_hst
-  } else {
-    L_Sigma_vag <- t(chol(Sigma_vag))
+  if (is.null(se_vag)) {
+    se_vag <- sqrt(nrow(df_hst))*se_hst
   }
   
   list(
     cols = des_hst$cols,
     p = ncol(des_hst$X),
-    beta_hst = beta_hst,
-    L_Sigma_hst = L_Sigma_hst,
-    beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag
+    tau_hst = tau_hst,
+    se_hst = se_hst,
+    tau_vag = tau_vag,
+    se_vag = se_vag
   )
 }
 
@@ -52,17 +51,17 @@ build_ancova_path_model <- function() {
 }
 
 ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2,
-                                  beta_vag = NULL, Sigma_vag = NULL,
+                                  tau_vag = NULL, se_vag = NULL,
                                   maxiter = 50000, chains = 1, seed = 123, 
                                   refresh = 0, save_warmup = FALSE) {
   K <- length(wknots)
   mlls <- rep(NA, K)
   ancova_path_dt <- build_ancova_path_data(df_hst, formula,
-                                           beta_vag, Sigma_vag)
+                                           tau_vag, se_vag)
   
   for (i in 1:K) {  # Consider use parLapply here
     ancova_path_dt$wknot <- wknots[i]
-    iter <- max(ceiling(maxiter^(1-wknots[i])), 2000)
+    iter <- max(ceiling(maxiter^(1-wknots[i])), 5000)
     fit <- run_model(model, ancova_path_dt,
                      iter, round(iter/2), chains, seed, 
                      refresh = refresh,
@@ -78,24 +77,23 @@ ancova_path_integrate <- function(model, df_hst, formula, wknots = (0:200/200)^2
 # --- Build Stan data ---
 build_ancova_data <- function(df_cur, df_hst, formula,
                               w_fixed = 0.5, estimate_w = FALSE, normalization = TRUE,
-                              beta_vag = NULL, Sigma_vag = NULL,
+                              tau_vag = NULL, se_vag = NULL,
                               wknots = c(0, 1), lgCknots = c(0, 0), exact_constant = TRUE) {
   
   des_cur <- mk_design(df_cur, formula)
+  p <- ncol(des_cur$X)
   
   # historical informative prior (scaled by a0)
   fit_hst <- lm(formula, df_hst)
-  beta_hst <- coef(fit_hst)
-  L_Sigma_hst <- t(chol(sandwich::vcovHC(fit_hst)))
+  tau_hst <- coef(fit_hst)[p]
+  se_hst <- sqrt(sandwich::vcovHC(fit_hst)[p, p])
   
   # vague prior
-  if (is.null(beta_vag)) {
-    beta_vag <- beta_hst
+  if (is.null(tau_vag)) {
+    tau_vag <- tau_hst
   }
-  if (is.null(Sigma_vag)) {
-    L_Sigma_vag <- sqrt(nrow(df_hst))*L_Sigma_hst
-  } else {
-    L_Sigma_vag <- t(chol(Sigma_vag))
+  if (is.null(se_vag)) {
+    se_vag <- sqrt(nrow(df_hst))*se_hst
   }
   
   list(
@@ -104,10 +102,10 @@ build_ancova_data <- function(df_cur, df_hst, formula,
     p = ncol(des_cur$X),
     Y = des_cur$Y,
     X = des_cur$X,
-    beta_hst = beta_hst,
-    L_Sigma_hst = L_Sigma_hst,
-    beta_vag = beta_vag,
-    L_Sigma_vag = L_Sigma_vag,
+    tau_hst = tau_hst,
+    se_hst = se_hst,
+    tau_vag = tau_vag,
+    se_vag = se_vag,
     w_fixed = w_fixed,
     estimate_w = estimate_w,
     normalization = normalization,
