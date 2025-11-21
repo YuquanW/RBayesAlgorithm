@@ -351,11 +351,26 @@ sd_ref_df <- ci_df |>
     tau = delta+0.6,
     method,
     w_ref = w,
+    estimate_ref = estimate,
     sd_ref = sd
+  )
+sd_fb_df <- ci_df |>
+  group_by(delta, method) |>
+  arrange(w) |>
+  slice_max(w - 0) |>
+  ungroup() |>
+  transmute(
+    tau = delta+0.6,
+    method,
+    w_fb = w,
+    estimate_fb = estimate,
+    sd_fb = sd
   )
 ehss_df <- phase_df |>
   left_join(sd_ref_df, by = c("tau", "method")) |>
+  left_join(sd_fb_df, by = c("tau", "method")) |>
   mutate(
-    EHSS = if_else(w_phase > 0, n_cur * (sd_ref^2 / sd_phase^2 - 1), NA)
+    EHSS_phase = if_else(w_phase > 0, n_cur * (sd_ref^2 / sd_phase^2 - 1), NA),
+    EHSS_fb = n_cur * (sd_ref^2 / sd_fb^2 - 1)
   )
 save(p_ci_1, p_ci_2, p_ci_3, p_dic, ehss_df, file = "simres3.RData")

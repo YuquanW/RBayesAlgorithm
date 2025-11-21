@@ -201,15 +201,15 @@ power.t.regression(beta = 0.5, sd.predictor = 0.5, sd.outcome = sqrt(1+gamma^2*s
 
 ANCOVA模型的模拟研究考虑以下几种信息先验方法：
 
-1. Fixed mixture prior (FMP) with $w=0.5$ and $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$;
-2. Random mixture prior (RMP) with $w\sim Beta(1, 1)$ and $\pi_{vag}(\beta)=N(\hat\beta_{hst},n\hat\sigma^2(X_{hst}^TX_{hst})^{-1})$;
-3. Fixed power prior (FPP) with $w=0.5$ and $\pi_0(\beta)=\pi_{vag}(\beta)$;
-4. Unnormalized power prior (UPP) with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$;
-5. Normalized power prior (ANPP) with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$ using path sampling;
-6. Normalized power prior (NPP) with $w\sim Beta(1, 1)$ and $\pi_0(\beta)=\pi_{vag}(\beta)$ using exact $\log C(w)$ based on \@ref(eq:5);
+1. Fixed mixture prior (FMP) with $w=0.5$ and $\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$;
+2. Random mixture prior (RMP) with $w\sim Beta(1, 1)$ and $\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$;
+3. Fixed power prior (FPP) with $w=0.5$ and $\pi_0(\tau)=\pi_{vag}(\tau),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$;
+4. Unnormalized power prior (UPP) with $w\sim Beta(1, 1)$ and $\pi_0(\tau)=\pi_{vag}(\tau),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$;
+5. Normalized power prior (ANPP) with $w\sim Beta(1, 1)$ and $\pi_0(\tau)=\pi_{vag}(\tau),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$ using path sampling;
+6. Normalized power prior (NPP) with $w\sim Beta(1, 1)$ and $\pi_0(\tau)=\pi_{vag}(\tau),\pi_0(\alpha,\gamma,\sigma^2)\propto 1/\sigma^2$ using exact $\log C(w)$ based on \@ref(eq:5);
 7. ANCOVA with current data.
 
-在模拟研究中，对于点估计和区间估计，比较bias、RMSE、credible/confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power，其中Bayes方法在$P(\beta>0|D,D_{hst})>0.975$时拒绝原假设（等价于$\beta$的95%可信区间下界大于0）。
+在模拟研究中，对于点估计和区间估计，比较bias、RMSE、credible/confidence interval (CI) length和coverage probability (CP)；对于假设检验，比较type I error和power，其中Bayes方法在$P(\tau>0|D,D_{hst})>0.975$时拒绝原假设（等价于$\tau$的95%可信区间下界大于0）。
 
 #### 试运行结果展示
 
@@ -467,22 +467,22 @@ legend("topright", legend = c("Path sampling", "Closed form"), col = c("red", "b
 
 本节比较prior-data conflict的程度变化时各方法的统计性能，历史数据的治疗效应为0.6，当前研究的治疗效应（current effect size）从0增加至0.6。每个current effect size下的模拟次数为1,000次。
 
-图\@ref(fig:fig4-4)展示了FMP ($w=0.5$), RMP, FPP ($w=0.5$), UPP, ANPP, NPP, ANCOVA七种方法的bias和RMSE随current effect size的变化。图\@ref(fig:fig4-5)展示了各方法的probability of rejection随current effect size的变化，其中，当$\beta=0$时，probability of rejection即为type I error。对于probability of rejection的计算，ANCOVA方法使用单侧t-检验来检验$H_0:\beta=0\text{ v.s. }H_1:\beta>0$，其他的贝叶斯方法使用10,000次MCMC抽样的后验概率$P(\beta\gt 0|D, D_{hst})\gt 0.975$来检验。注意到由于模拟次数为1,000次，$\alpha=0.025$下type I error的95%可能范围约为0.015至0.035，power的95%可能范围约为0.775至0.825。对于各方法统计性能的比较主要有以下结果：
+图\@ref(fig:fig4-4)展示了FMP ($w=0.5$), RMP, FPP ($w=0.5$), UPP, ANPP, NPP, ANCOVA七种方法的bias和RMSE随current effect size的变化。图\@ref(fig:fig4-5)展示了各方法的probability of rejection随current effect size的变化，其中，当$\tau=0$时，probability of rejection即为type I error。对于probability of rejection的计算，ANCOVA方法使用单侧t-检验来检验$H_0:\tau=0\text{ v.s. }H_1:\tau>0$，其他的贝叶斯方法使用10,000次MCMC抽样的后验概率$P(\tau\gt 0|D, D_{hst})\gt 0.975$来检验。注意到由于模拟次数为1,000次，$\alpha=0.025$下type I error的95%可能范围约为0.015至0.035，power的95%可能范围约为0.775至0.825。对于各方法统计性能的比较主要有以下结果：
 
 1. 所有信息借用的方法在无prior-data conflict下bias与RMSE最低；
-2. FMP和RMP的表现几乎相同，验证了Methods部分对混合先验的讨论，这两种方法的RMSE在弱prior-data conflict ($\beta$在0.45~0.6之间) 的场景下表现最佳；
+2. FMP和RMP的表现几乎相同，验证了Methods部分对混合先验的讨论，这两种方法的RMSE在弱prior-data conflict ($\tau$在0.45~0.6之间) 的场景下表现最佳；
 2. FPP的bias随current effect size的变化较其他方法更不稳定，且type I error最高；
 3. UPP的bias比ANCOVA外的其他方法更低，假设检验更保守;
 4. ANPP和NPP的表现几乎相同，表明path sampling的近似对后验推断几乎没有影响，这两种方法的表现也与FMP和FPP相近；
 5. 由于ANCOVA方法不借用任何信息，其bias均在0附近，但是RMSE在弱prior-data conflict场景下要高于其他信息借用方法，而probability of rejection则符合预设的$\alpha$和power。
 
-```{r fig4-4, fig.show="hold", fig.width=9, fig.cap="Bias and RMSE of the compared methods under various current effect size. The historical effect size is $\\tau_0=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Bias and RMSE are estimated based on 1,000 simulation datasets.", out.width=c('48%','48%'), fig.asp=0.7}
+```{r fig4-4, fig.show="hold", fig.width=9, fig.cap="Bias and RMSE of the compared methods under various current effect size. The historical effect size is $\\tau_0=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\tau$ increases from 0 to 0.6. Bias and RMSE are estimated based on 1,000 simulation datasets.", out.width=c('48%','48%'), fig.asp=0.7}
 load("simres1.RData")
 p_bias
 p_rmse
 ```
 
-```{r fig4-5, fig.width=9, fig.cap="Probability of rejection of the compared methods under various current effect size. The historical effect size is $\\tau_0=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\beta$ increases from 0 to 0.6. Note that when $\\beta=0$, the probability of rejection is actually the type I error. Reference lines indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\beta=0.6$. For ANCOVA, the null hypothesis $H_0:\\beta=0$ is tested with right-tailed t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. Probability of rejection is estimated based on 1,000 simulation datasets."}
+```{r fig4-5, fig.width=9, fig.cap="Probability of rejection of the compared methods under various current effect size. The historical effect size is $\\tau_0=0.6$, which is indicated by the vertical red dashed line. The strength of prior-data conflict reduces as current effect size $\\tau$ increases from 0 to 0.6. Note that when $\\tau=0$, the probability of rejection is actually the type I error. Reference lines indicate the nominal significance level $\\alpha=0.025$ and the pre-defined power of 0.8 when $\\tau=0.6$. For ANCOVA, the null hypothesis $H_0:\\tau=0$ is tested with right-tailed t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\tau\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. Probability of rejection is estimated based on 1,000 simulation datasets."}
 p_power
 ```
 
@@ -493,12 +493,12 @@ p_power
 ```{r tab4-2}
 summary_disp %>%
   mutate("Historical effect size" = 0.6, .before = 1) %>%
-  rename("Current effect size" = "beta",
+  rename("Current effect size" = "tau",
          "Method" = "method",
          "Coverage probability" = "Coverage",
          "CI length" = "CI_length") %>%
   kbl(format = "html", digits = 3, booktabs = T, centering = T,
-      caption = "Statistical performance of the compared methods under various current effect size. Confidence/Credible intervals are derived at the level of 95%. For ANCOVA, the null hypothesis $H_0:\\beta=0$ is tested with right-tailed t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. All metrics are estimated based on 1,000 simulation datasets.") %>%
+      caption = "Statistical performance of the compared methods under various current effect size. Confidence/Credible intervals are derived at the level of 95%. For ANCOVA, the null hypothesis $H_0:\\tau=0$ is tested with right-tailed t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\tau\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. All metrics are estimated based on 1,000 simulation datasets.") %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
   collapse_rows(columns = c(1, 2), valign = "top")
 ```
@@ -508,10 +508,10 @@ summary_disp %>%
 
 本节的模拟试验旨在探索试验设计阶段，如何从统计模拟的角度给出合适范围的$w$。
 
-历史数据的治疗效应$\tau_0=0.6$。试验设计阶段，若假设治疗效应$\beta=0.6$，主要终点的样本方差为$Var(Y)=0.84$，协变量包括治疗分组和基线水平，单侧检验$\alpha=0.025$，由于入组困难，power为0.7时，样本量应为44。此时，考虑以下两个场景：
+历史数据的治疗效应$\tau_0=0.6$。试验设计阶段，若假设治疗效应$\tau=0.6$，主要终点的样本方差为$Var(Y)=0.84$，协变量包括治疗分组和基线水平，单侧检验$\alpha=0.025$，由于入组困难，power为0.7时，样本量应为44。此时，考虑以下两个场景：
 
-* 场景一：在原假设下，$\beta=0$时type I error随$w$的变化，此时为强prior-data conflict；
-* 场景二：在试验设计假设下，$\beta=0.6$时power随$w$的变化，此时无prior-data conflict。
+* 场景一：在原假设下，$\tau=0$时type I error随$w$的变化，此时为强prior-data conflict；
+* 场景二：在试验设计假设下，$\tau=0.6$时power随$w$的变化，此时无prior-data conflict。
 
 图\@ref(fig:fig4-6)展示了type I error和power随$w$的变化，左图为fixed mixture prior方法，右图为fixed power prior方法：
 
@@ -525,15 +525,15 @@ summary_disp %>%
 
 可容忍的type I error的选择或许可通过由医学给定$P(H_0\text{ is true})$和$P(H_1\text{ is true})$，约束posterior probability of type I error $P(H_0\text{ is true}|\text{Rejection})\leq\pi$来确定。例如，在上述模拟场景中，若$P(H_0\text{ is true})=0.63, P(H_1\text{ is true})=0.37, \pi=0.05$，则可接受的type I error为$0.025$；$P(H_0\text{ is true})=0.3, P(H_1\text{ is true})=0.7, \pi=0.05$，则可接受的type I error为$0.098\approx0.1$。
 
-```{r fig4-6, fig.width=9, fig.asp=0.65, fig.cap="Type I error (current effect size=0.00, red solid lines with round points) and power (current effect size=0.60, blue dashed lines with triangle points) for FMP (left) and FPP (right) against $w$. Reference lines are drawn at $0.025, 0.05, 0.1, 0.7, \\text{ and } 0.8$, ordered bottom-to-top. The null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. Probability of rejection is estimated based on 1,000 simulation datasets."}
+```{r fig4-6, fig.width=9, fig.asp=0.65, fig.cap="Type I error (current effect size=0.00, red solid lines with round points) and power (current effect size=0.60, blue dashed lines with triangle points) for FMP (left) and FPP (right) against $w$. Reference lines are drawn at $0.025, 0.05, 0.1, 0.7, \\text{ and } 0.8$, ordered bottom-to-top. The null hypothesis is tested by $P(\\tau\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. Probability of rejection is estimated based on 1,000 simulation datasets."}
 load("simres2.RData")
 p_power
 ```
 
 图\@ref(fig:fig4-7)展示了DIC随$w$的变化：
 
-1. 在无prior-data conflict时（$\beta=0.6,\tau_0=0.6$），对于FMP和FPP方法，DIC的最小值点均为1，此时DIC建议借用全部历史数据；
-2. 在强prior-data conflict时（$\beta=0,\tau_0=0.6$），对于FMP方法，DIC的最小值点在$[0, 0.1)$，对于FPP方法，DIC的最小值点在$(0, 0.2)$。
+1. 在无prior-data conflict时（$\tau=0.6,\tau_0=0.6$），对于FMP和FPP方法，DIC的最小值点均为1，此时DIC建议借用全部历史数据；
+2. 在强prior-data conflict时（$\tau=0,\tau_0=0.6$），对于FMP方法，DIC的最小值点在$[0, 0.1)$，对于FPP方法，DIC的最小值点在$(0, 0.2)$。
 
 综合基于type I error和power选择$w$的结果，当不确定$w$的取值时，基于DIC选择$w$可能是一个可行方案，提供了不同角度支持$w$选取的合理性。
 
@@ -548,44 +548,63 @@ p_dic
 
 历史数据的治疗效应$\tau_0=0.6$。考虑以下三个场景：
 
-* 场景一：strong prior-data conflict，此时$\beta=0$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同；
-* 场景二：no prior-data conflict，此时$\beta=0.6$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同；
-* 场景三：weak prior-data conflict，此时$\beta=0.5$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同，对应的power为0.527。
+* 场景一：strong prior-data conflict，此时$\tau=0$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同；
+* 场景二：no prior-data conflict，此时$\tau=0.6$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同；
+* 场景三：weak prior-data conflict，此时$\tau=0.5$，样本量等其他参数与第\@ref(sec4-1-1-3)节相同，对应的power为0.527。
 
-图\@ref(fig:fig4-8)-\@ref(fig:fig4-10)展示了三个场景中，两种方法的区间估计随$w$的变化情况，左图为fixed mixture prior方法，右图为fixed power prior方法：
+图\@ref(fig:fig4-8)-\@ref(fig:fig4-10)展示了三个场景中，两种方法的区间估计随$w$的变化情况（左图为fixed mixture prior方法，右图为fixed power prior方法），表\@ref(tab:tab4-3)展示发生phase change时$w$的取值和对应的EHSS：
 
-1. 场景一中，mixture prior方法仅在$w\geq0.97$时（对应的有效样本量为）支持$H_a:\beta>0$，power prior方法在$w\geq0.5$时支持$H_a$，在此场景下$w=0.1$的选择是稳健的；
-2. 
+1. 场景一中（图\@ref(fig:fig4-8)），mixture prior方法在$w\geq0.97$时（对应的EHSS为51.6）支持$H_a:\tau>0$，power prior方法在$w\geq0.5$时（对应的EHSS为49.0）支持$H_a$。Mixture prior的效应估计从不借用的0.015增加到完全借用的0.426，power prior的效应估计从不借用的0.018增加到完全借用的0.423。这些结果表明历史数据与当前研究的治疗效应差别较大，靠近0的$w$可能更加稳健；
+2. 场景二中（图\@ref(fig:fig4-9)），两种方法均没有随$w$的变化发生phase change，且估计随$w$增加几乎无变化，表明历史数据与当前研究的治疗效应几乎没有差异，统计决策对$w$不敏感；
+3. 场景三中（图\@ref(fig:fig4-10)），两种方法均没有随$w$的变化发生phase change。Mixture prior的效应估计从不借用的0.498增加到完全借用的0.568，power prior的效应估计从不借用的0.503增加到完全借用的0.568。这些结果表明历史数据与当前研究的治疗效应差别小，统计决策对$w$不敏感。
 
-```{r fig4-8, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is a strong prior-data conflict (current effect size=0.00). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\beta=0$."}
+综上，若使用第\@ref(sec4-1-1-3)节中的模拟方法确定$w$的取值，则$w=0.1$时的结果在三种场景下都是稳健的。
+
+```{r fig4-8, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is a strong prior-data conflict (current effect size=0.00). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\tau=0$."}
 load("./simres3.RData")
 p_ci_1
 ```
 
-```{r fig4-9, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is no prior-data conflict (current effect size=0.60). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\beta=0$."}
+```{r fig4-9, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is no prior-data conflict (current effect size=0.60). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\tau=0$."}
 p_ci_3
 ```
 
-```{r fig4-10, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is a weak prior-data conflict (current effect size=0.50). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\beta=0$."}
+```{r fig4-10, fig.width=9, fig.asp=0.65, fig.cap="Sensitivity analysis for FMP (left) and FPP (right) against $w$ when there is a weak prior-data conflict (current effect size=0.50). The shaded region indicates the 95% credible interval for corresponding method. The reference line indicates the effect size of null hypothesis, i.e., $\\tau=0$."}
 p_ci_2
 ```
 
 ```{r tab4-3}
 ehss_df %>%
-  select(tau, method, w_ref, sd_ref, w_phase, sd_phase, EHSS) %>%
+  select(tau, method, w_ref, estimate_ref, w_phase, estimate_phase, EHSS_phase, 
+         w_fb, estimate_fb, EHSS_fb) %>%
   mutate("Historical effect size" = 0.6, .before = 1) %>%
   rename("Current effect size" = "tau",
          "Method" = "method",
-         "Reference w" = "w_ref",
-         "Reference SD" = "sd_ref",
-         "Phase change w" = "w_phase",
-         "Phase change SD" = "sd_phase") %>%
+         "Reference $w$" = "w_ref",
+         "Reference $\\hat\\tau$" = "estimate_ref",
+         "Phase change $w$" = "w_phase",
+         "Phase change $\\hat\\tau$" = "estimate_phase",
+         "Phase change EHSS" = "EHSS_phase",
+         "Fully borrow $w$" = "w_fb",
+         "Fully borrow $\\hat\\tau$" = "estimate_fb",
+         "Fully borrow EHSS" = "EHSS_fb") %>%
   kbl(format = "html",
-      digits = c(1, 1, NA, 0, 3, 2, 3, 1), 
+      digits = c(1, 1, NA, 0, 3, 2, 3, 1, 0, 3, 1), 
       booktabs = T, centering = T,
-      caption = "Statistical performance of the compared methods under various current effect size. Confidence/Credible intervals are derived at the level of 95%. For ANCOVA, the null hypothesis $H_0:\\beta=0$ is tested with right-tailed t-test at the level of 0.025, while for Bayesian methods, the null hypothesis is tested by $P(\\beta\\gt 0|D, D_{hst})\\gt 0.975$ with 10,000 MCMC iterations. All metrics are estimated based on 1,000 simulation datasets.") %>%
+      caption = "Summary of sensitivity analysis in the three scenarios.") %>%
   kable_styling(bootstrap_options = c("striped", "hover"), full_width = FALSE) %>%
   collapse_rows(columns = c(1, 2), valign = "top")
+```
+
+图\@ref(fig:fig4-11)展示了DIC在三组数据中随$w$的变化，若基于DIC适应性地选取$w$（最小值点）：
+
+1. 场景一下，DIC将会建议mixture prior和power prior分别选择$w=0$和$w=0.1$；
+2. 场景二和三下，DIC将会建议mixture prior和power prior选择$w=1$；
+
+得到的估计和统计决策在三个场景中也都是稳健的。
+
+```{r fig4-11, fig.width=9, fig.asp=0.65, fig.cap="DIC for FMP (left) and FPP (right) against $w$ when there is a strong prior-data conflict (current effect size=0.00, red solid lines with round points), no prior-data conflict (current effect size=0.60, blue dashed lines with square points) and weak prior-data conflict (current effect size=0.50, green dashed lines with triangle points)."}
+p_dic
 ```
 
 <!-- # Backup Code -->
