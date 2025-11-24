@@ -216,7 +216,7 @@ p_dic   <- make_plot(dic_sum, "DIC",   "Mean DIC", "DIC v.s. w")
 p_power <- make_plot(pow_sum, "Power", "Probability of rejection",    "Probability of rejection v.s. w", add_power_refs = TRUE)
 
 print(p_dic);print(p_power)
-save(p_dic, p_power, file = "simres2.RData")
+save(pow_sum, p_dic, p_power, file = "simres2.RData")
 
 # simres3
 # ===== 1) 文件与方法名 =====
@@ -370,7 +370,9 @@ ehss_df <- phase_df |>
   left_join(sd_ref_df, by = c("tau", "method")) |>
   left_join(sd_fb_df, by = c("tau", "method")) |>
   mutate(
-    EHSS_phase = if_else(w_phase > 0, n_cur * (sd_ref^2 / sd_phase^2 - 1), NA),
+    w_phase = if_else(w_phase > 0, w_phase, NA),
+    estimate_phase = if_else(!is.na(w_phase), estimate_phase, NA),
+    EHSS_phase = if_else(!is.na(w_phase), n_cur * (sd_ref^2 / sd_phase^2 - 1), NA),
     EHSS_fb = n_cur * (sd_ref^2 / sd_fb^2 - 1)
   )
 save(p_ci_1, p_ci_2, p_ci_3, p_dic, ehss_df, file = "simres3.RData")
