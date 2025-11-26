@@ -632,7 +632,7 @@ p_dic
 ```{r}
 tdl <- tibble::tibble(
   "终点" = c("连续型", "连续型（重复测量）", "二分类（RD）", "二分类（OR）", "计数型", "TTE"),
-  "模型" = c("ANCOVA", "MMRM", "CMH likelihood", "CMH likelihood", "Negative binomial model", "Exponential survival model"),
+  "模型" = c("ANCOVA", "MMRM", "Binomial likelihood", "CMH/Logistic likelihood", "Negative binomial model", "Exponential survival model"),
   "借用效应值" = c(TRUE, FALSE, FALSE, FALSE, FALSE),
   "借用对照组" = c(FALSE, FALSE, FALSE, FALSE, FALSE)
 )
