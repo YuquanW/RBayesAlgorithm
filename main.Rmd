@@ -138,12 +138,33 @@ $$p_{pp}(\tau|w)\propto N\left(\hat\tau_{hst},w^{-1}\hat\sigma_{\tau}^2\right)\p
 从该表达式也可看出，当温度$w$增加时，将借用更多的历史信息，而当温度$w$降低时，幂先验的密度将会趋于平坦，从而趋近无信息先验。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 $$\pi_0(\tau)=\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2).$$
 
-对于当前模型的nuisance parameter，同样使用Jeffrey's prior处理。
+对于当前模型的nuisance parameter，同样使用Jeffreys' prior处理。
 
 此时若考虑$w$为随机变量，则
 \begin{equation}
 \log C(w)=const-\frac{w}{2}\log(2\pi\hat\sigma_{\tau}^2)-\frac{1}{2}\log w+\log N(\hat\tau_{hst};\hat\tau_{hst},(w^{-1}+n)\hat\sigma_{\tau}^2).(\#eq:5)
 \end{equation}
+
+## 二分类变量终点
+
+对于二分类变量终点，假设一共有$K$个分层因素，对于第$k$个分层因素，有$N_k$个参与者，其中治疗组人数为$m_k=n_{1+k}$，有$s_k=n_{11k}$人发生事件，对照组人数为$n_k=n_{2+s}$，有$t_k=n_{21k}$人发生事件（如表\@ref(tab:tab3-1)所示）。
+
+```{r tab3-1}
+tdl <- tibble::tibble(
+  "Treatment" = c("1", "0", "Total"),
+  "1" = c("$s_{k}$", "$t_{k}$", "$n_{+1k}$"),
+  "0" = c("$n_{12k}$", "$n_{22k}$","$n_{+2k}$"),
+  "Total" = c("$m_{k}$", "$n_{k}$", "$N_{k}$") 
+)
+kbl(tdl,
+    booktabs = TRUE,
+    caption = "The structure of $2\\times 2\\times K$ table.", table.attr = "style='width: 50%;'") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### Mantel-Haenszel-type risk difference
+
+
 
 <!-- ## 肿瘤项目 -->
 
@@ -633,8 +654,8 @@ p_dic
 tdl <- tibble::tibble(
   "终点" = c("连续型", "连续型（重复测量）", "二分类（RD）", "二分类（OR）", "计数型", "TTE"),
   "模型" = c("ANCOVA", "MMRM", "Binomial likelihood", "CMH/Logistic likelihood", "Negative binomial model", "Exponential survival model"),
-  "借用效应值" = c(TRUE, FALSE, FALSE, FALSE, FALSE),
-  "借用对照组" = c(FALSE, FALSE, FALSE, FALSE, FALSE)
+  "借用效应值" = c(TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
+  "借用对照组" = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)
 )
 tdl_disp <- tdl %>%
   mutate(across(c(3, 4), ~ if_else(.x, "\u2713", "")))

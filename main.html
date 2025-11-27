@@ -693,11 +693,83 @@ p_{pp}(\beta,\sigma^2|w)\propto (\sigma^2)^{-\frac{nw}{2}}\exp\left\{-\frac{1}{2
 <span class="math display">\[p_{pp}(\tau|w)\propto N\left(\hat\tau_{hst},w^{-1}\hat\sigma_{\tau}^2\right)\pi_0(\tau).\]</span>
 从该表达式也可看出，当温度<span class="math inline">\(w\)</span>增加时，将借用更多的历史信息，而当温度<span class="math inline">\(w\)</span>降低时，幂先验的密度将会趋于平坦，从而趋近无信息先验。在后续的模拟研究中，出于对后验收敛性的考虑，取幂先验的initial prior为
 <span class="math display">\[\pi_0(\tau)=\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2).\]</span></p>
-<p>对于当前模型的nuisance parameter，同样使用Jeffrey’s prior处理。</p>
+<p>对于当前模型的nuisance parameter，同样使用Jeffreys’ prior处理。</p>
 <p>此时若考虑<span class="math inline">\(w\)</span>为随机变量，则
 <span class="math display" id="eq:5">\[\begin{equation}
 \log C(w)=const-\frac{w}{2}\log(2\pi\hat\sigma_{\tau}^2)-\frac{1}{2}\log w+\log N(\hat\tau_{hst};\hat\tau_{hst},(w^{-1}+n)\hat\sigma_{\tau}^2).\tag{3.1}
 \end{equation}\]</span></p>
+</div>
+</div>
+<div id="二分类变量终点" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> 二分类变量终点</h2>
+<p>对于二分类变量终点，假设一共有<span class="math inline">\(K\)</span>个分层因素，对于第<span class="math inline">\(k\)</span>个分层因素，有<span class="math inline">\(N_k\)</span>个参与者，其中治疗组人数为<span class="math inline">\(m_k=n_{1+k}\)</span>，有<span class="math inline">\(s_k=n_{11k}\)</span>人发生事件，对照组人数为<span class="math inline">\(n_k=n_{2+s}\)</span>，有<span class="math inline">\(t_k=n_{21k}\)</span>人发生事件（如<a href="#tab:tab3-1">3.1</a>所示）。</p>
+<table style="width: 50%; margin-left: auto; margin-right: auto;" class="table table-striped table-hover">
+<caption>
+<span id="tab:tab3-1">Table 3.1: </span>The structure of <span class="math inline">\(2\times 2\times K\)</span> table.
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Treatment
+</th>
+<th style="text-align:left;">
+1
+</th>
+<th style="text-align:left;">
+0
+</th>
+<th style="text-align:left;">
+Total
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+1
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{11k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{12k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(m_{k}\)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+0
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{21k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{22k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{k}\)</span>
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Total
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{+1k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(n_{+2k}\)</span>
+</td>
+<td style="text-align:left;">
+<span class="math inline">\(N_{k}\)</span>
+</td>
+</tr>
+</tbody>
+</table>
+<div id="mantel-haenszel-type-risk-difference" class="section level3" number="3.2.1">
+<h3><span class="header-section-number">3.2.1</span> Mantel-Haenszel-type risk difference</h3>
 <!-- ## 肿瘤项目 -->
 </div>
 </div>
@@ -3924,10 +3996,22 @@ MMRM
 </tr>
 <tr>
 <td style="text-align:left;">
-二分类
+二分类（RD）
 </td>
 <td style="text-align:left;">
-Binomial
+Binomial likelihood
+</td>
+<td style="text-align:left;">
+</td>
+<td style="text-align:left;">
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+二分类（OR）
+</td>
+<td style="text-align:left;">
+CMH/Logistic likelihood
 </td>
 <td style="text-align:left;">
 </td>
@@ -3939,7 +4023,7 @@ Binomial
 计数型
 </td>
 <td style="text-align:left;">
-Negative binomial regression
+Negative binomial model
 </td>
 <td style="text-align:left;">
 </td>
