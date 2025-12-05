@@ -147,14 +147,14 @@ $$\pi_0(\tau)=\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2).$$
 
 ## 二分类变量终点
 
-对于二分类变量终点，假设一共有$K$个分层因素，对于第$k$个分层因素，有$N_k$个参与者，其中治疗组人数为$m_k=n_{1+k}$，有$s_k=n_{11k}$人发生事件，对照组人数为$n_k=n_{2+s}$，有$t_k=n_{21k}$人发生事件（如表\@ref(tab:tab3-1)所示）。
+对于二分类变量终点，假设一共有$K$个分层因素，对于第$k$个分层因素，有$N_k$个参与者，其中治疗组人数为$n_{1+k}$，有$n_{11k}$人发生事件，对照组人数为$n_{2+k}$，有$n_{21k}$人发生事件（如表\@ref(tab:tab3-1)所示）。
 
 ```{r tab3-1}
 tdl <- tibble::tibble(
   "Treatment" = c("1", "0", "Total"),
-  "1" = c("$s_{k}$", "$t_{k}$", "$n_{+1k}$"),
-  "0" = c("$n_{12k}$", "$n_{22k}$","$n_{+2k}$"),
-  "Total" = c("$m_{k}$", "$n_{k}$", "$N_{k}$") 
+  "Success" = c("$n_{11k}$", "$n_{21k}$", "$n_{+1k}$"),
+  "Failure" = c("$n_{12k}$", "$n_{22k}$","$n_{+2k}$"),
+  "Total" = c("$n_{1+k}$", "$n_{2+k}$", "$N_{k}$") 
 )
 kbl(tdl,
     booktabs = TRUE,
@@ -162,9 +162,9 @@ kbl(tdl,
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-### Mantel-Haenszel-type risk difference
+### Mantel-Haenszel estimate of common risk difference
 
-
+### Mantel-Haenszel estimate of common odds ratio
 
 <!-- ## 肿瘤项目 -->
 
