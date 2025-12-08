@@ -768,11 +768,19 @@ Total
 </tr>
 </tbody>
 </table>
-<div id="mantel-haenszel-estimate-of-common-risk-difference" class="section level3" number="3.2.1">
-<h3><span class="header-section-number">3.2.1</span> Mantel-Haenszel estimate of common risk difference</h3>
+<div id="common-odds-ratio的mantel-haenszel估计" class="section level3" number="3.2.1">
+<h3><span class="header-section-number">3.2.1</span> Common odds ratio的Mantel-Haenszel估计</h3>
+<p>对于<span class="math inline">\(2\times2\times K\)</span>的分层列联表，OR的Mantel-Haenszel估计为
+<span class="math display">\[
+\hat\theta_{MH}=\frac{\sum_kn_{11k}n_{22k}/n_{++k}}{\sum_kn_{12k}n_{21k}/n_{++k}}=\frac{\sum_kn_{++k}p_{11|k}p_{22|k}}{\sum_kn_{++k}p_{12|k}p_{21|k}},
+\]</span></p>
+<p><span class="math inline">\(\log\hat\theta_{MH}\)</span>的方差估计为
+<span class="math display">\[
+\widehat{Var}(\log\hat\theta_{MH})=\frac{1}{2R^2}\sum_k\frac{(n_{11k}+n_{22k})R_k}{n_{++k}}+\frac{1}{2S^2}\sum_k\frac{(n_{12k}+n_{21k})S_k}{n_{++k}}+\frac{1}{2RS}\sum_k\frac{(n_{11k}+n_{22k})S_k+(n_{12k}+n_{21k})R_k}{n_{++k}}
+\]</span></p>
 </div>
-<div id="mantel-haenszel-estimate-of-common-odds-ratio" class="section level3" number="3.2.2">
-<h3><span class="header-section-number">3.2.2</span> Mantel-Haenszel estimate of common odds ratio</h3>
+<div id="common-risk-difference的mantel-haenszel估计" class="section level3" number="3.2.2">
+<h3><span class="header-section-number">3.2.2</span> Common risk difference的Mantel-Haenszel估计</h3>
 <!-- ## 肿瘤项目 -->
 </div>
 </div>

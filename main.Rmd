@@ -28,7 +28,7 @@ library(dplyr)
 library(knitr)
 library(kableExtra)
 library(purrr)
-source("Utils.R")
+source("Utils_Ancova.R")
 ```
 
 # Introduction {#sec1}
@@ -126,7 +126,7 @@ $$Y\sim N(X\beta, \sigma^2I),$$
 对于历史数据，有$\hat\beta_{hst}\sim N(\beta,\sigma^2(X^TX)^{-1})$。将历史模型中的nuisance parameter $\sigma^2$用MLE或无偏估计代入（本文使用无偏估计），得到混合先验为
 $$p_{mp}(\tau|w)\sim wN(\hat{\tau}_{hst},\hat\sigma_{\tau}^2)+(1-w)\pi_{vag}(\tau).$$
 
-对于$\pi_{vag}(\tau)$的选取，可用unit information prior $\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2)$。此外，对于当前模型中的nuisance parameter $\alpha,\gamma,\sigma^2$，则使用Jeffreys' prior。 
+对于$\pi_{vag}(\tau)$的选取，可用unit information prior $\pi_{vag}(\tau)=N(\hat\tau_{hst},n\hat\sigma_{\tau}^2)$。此外，对于当前模型中的nuisance parameter $\alpha,\gamma,\sigma^2$，则使用Jeffreys' prior。
 
 
 幂先验为
@@ -162,9 +162,26 @@ kbl(tdl,
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-### Mantel-Haenszel estimate of common risk difference
+### Common odds ratio的Mantel-Haenszel估计
 
-### Mantel-Haenszel estimate of common odds ratio
+对于$2\times2\times K$的分层列联表，OR的Mantel-Haenszel估计为
+$$
+\hat\theta_{MH}=\frac{\sum_kn_{11k}n_{22k}/n_{++k}}{\sum_kn_{12k}n_{21k}/n_{++k}}=\frac{\sum_kn_{++k}p_{11|k}p_{22|k}}{\sum_kn_{++k}p_{12|k}p_{21|k}},
+$$
+
+令$\hat\theta_{MH}=R/S=\sum_kR_k/\sum_kS_k$，$\log\hat\theta_{MH}$的方差估计为
+$$
+\hat\sigma^2[\log\hat\theta_{MH}]=\frac{1}{2R^2}\sum_k\frac{(n_{11k}+n_{22k})R_k}{n_{++k}}+\frac{1}{2S^2}\sum_k\frac{(n_{12k}+n_{21k})S_k}{n_{++k}}+\frac{1}{2RS}\sum_k\frac{(n_{11k}+n_{22k})S_k+(n_{12k}+n_{21k})R_k}{n_{++k}}.
+$$
+
+对于历史数据，有$(\log\hat\theta_{MH,hst}-\log\theta)/\sqrt{\sigma^2[\log\hat\theta_{MH,hst}]}\overset{d}{\to}N(0, 1)$。将方差估计代入，得到混合先验为
+$$p_{mp}(\log\theta|w)\sim wN(\log\hat{\theta}_{MH,hst},\hat\sigma^2[\log\hat\theta_{MH,hst}])+(1-w)\pi_{vag}(\log\theta).$$
+
+其中$\pi_{vag}(\log\theta)=N(\log\hat\theta_{MH,hst},n\hat\sigma^2[\log\hat\theta_{MH,hst}])$。此外，对于当前模型中的nuisance parameter $\alpha,\gamma,\sigma^2$，则使用Jeffreys' prior。
+
+### Common risk difference的Mantel-Haenszel估计
+
+
 
 <!-- ## 肿瘤项目 -->
 
