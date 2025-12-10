@@ -774,10 +774,29 @@ Total
 <span class="math display">\[
 \hat\theta_{MH}=\frac{\sum_kn_{11k}n_{22k}/n_{++k}}{\sum_kn_{12k}n_{21k}/n_{++k}}=\frac{\sum_kn_{++k}p_{11|k}p_{22|k}}{\sum_kn_{++k}p_{12|k}p_{21|k}},
 \]</span></p>
-<p><span class="math inline">\(\log\hat\theta_{MH}\)</span>的方差估计为
+<p>令<span class="math inline">\(\hat\theta_{MH}=R/S=\sum_kR_k/\sum_kS_k\)</span>，<span class="math inline">\(\log\hat\theta_{MH}\)</span>的方差估计为
 <span class="math display">\[
-\widehat{Var}(\log\hat\theta_{MH})=\frac{1}{2R^2}\sum_k\frac{(n_{11k}+n_{22k})R_k}{n_{++k}}+\frac{1}{2S^2}\sum_k\frac{(n_{12k}+n_{21k})S_k}{n_{++k}}+\frac{1}{2RS}\sum_k\frac{(n_{11k}+n_{22k})S_k+(n_{12k}+n_{21k})R_k}{n_{++k}}
+\hat\sigma^2[\log\hat\theta_{MH}]=\frac{1}{2R^2}\sum_k\frac{(n_{11k}+n_{22k})R_k}{n_{++k}}+\frac{1}{2S^2}\sum_k\frac{(n_{12k}+n_{21k})S_k}{n_{++k}}+\frac{1}{2RS}\sum_k\frac{(n_{11k}+n_{22k})S_k+(n_{12k}+n_{21k})R_k}{n_{++k}}.
 \]</span></p>
+<p>对于历史数据，有<span class="math inline">\((\log\hat\theta_{MH,hst}-\log\theta)/\sigma[\log\hat\theta_{MH,hst}]\overset{d}{\to}N(0, 1)\)</span>。将方差估计代入，得到混合先验为
+<span class="math display">\[p_{mp}(\log\theta|w)\sim wN(\log\hat{\theta}_{MH,hst},\hat\sigma^2[\log\hat\theta_{MH,hst}])+(1-w)\pi_{vag}(\log\theta).\]</span></p>
+<p>其中<span class="math inline">\(\pi_{vag}(\log\theta)=N(\log\hat\theta_{MH,hst},n\hat\sigma^2[\log\hat\theta_{MH,hst}])\)</span>。</p>
+<p>幂先验为
+$$</p>
+<p>$$</p>
+<p>对于当前研究的数据，假设所有层的OR都相同，即
+<span class="math display">\[
+\theta=\frac{p_{1+|k}/(1-p_{1+|k})}{p_{2+|k}/(1-p_{2+|k})},\forall k,
+\]</span>
+且<span class="math inline">\(n_{11k}\)</span>和<span class="math inline">\(n_{21k}\)</span>服从如下二项分布
+<span class="math display">\[
+n_{11k}\sim Bin(n_{1+k},p_{1+|k}),n_{21k}\sim Bin(n_{2+k},p_{2+|k}),
+\]</span>
+那么<span class="math inline">\(n_{11k}\)</span>的对数条件似然可表示为
+<span class="math display">\[
+l(\theta|n_{11k},n_{+1k},n_{1+k},n_{2+k})=\sum_kn_{11k}\log\theta-\sum_k\log Z_k(\theta)+const,
+\]</span>
+其中<span class="math inline">\(Z_k(\theta)=\sum_{i=L_k}^{U_k}\begin{pmatrix}n_{1+k}\\i\end{pmatrix}\begin{pmatrix}n_{2+k}\\n_{+1k}-i\end{pmatrix}\theta^i\)</span>，<span class="math inline">\(L_k=\max(0, n_{+1k}-n_{2+k}), U_k=\min(n_{+1k},n_{1+k})\)</span>.</p>
 </div>
 <div id="common-risk-difference的mantel-haenszel估计" class="section level3" number="3.2.2">
 <h3><span class="header-section-number">3.2.2</span> Common risk difference的Mantel-Haenszel估计</h3>
